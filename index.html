@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiPenjamin - Kab. Kuningan</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js",
+            "lucide-react": "https://esm.sh/lucide-react@0.292.0?external=react"
+        }
+    }
+    </script>
+    
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f4f4f5; margin: 0; padding: 0; }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-zoom-in { animation: zoomIn 0.2s ease-out forwards; }
+        .tab-btn.active { border-bottom: 3px solid #5e35b1; color: #5e35b1; font-weight: 700; background-color: #f3e8ff; }
+        
+        /* Custom Scrollbar for better UX */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ab47bc; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8e24aa; }
+
+        /* Tabel Custom Sesuai Screenshot */
+        .table-custom th { background-color: #5b3278; color: white; text-align: left; padding: 12px 16px; font-weight: 600; font-size: 13px; border: 1px solid #7c5295; }
+        .table-custom td { padding: 12px 16px; font-size: 13px; color: #333; border: 1px solid #e0e0e0; vertical-align: top; }
+        .table-custom tr:nth-child(even) { background-color: #ffffff; }
+        .table-custom tr:nth-child(odd) { background-color: #fdfcff; }
+        .table-custom tr:hover { background-color: #f3e5f5; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+        import { Lock, LogIn, KeyRound, CheckCircle2, LayoutDashboard, FileText, Search, PlusCircle, AlertCircle, RefreshCw, MapPin, Shield, Users, Trash2, X, Check, XCircle, Clock, Eye, EyeOff, Menu, Printer, Info, CheckSquare, UploadCloud, FileSignature, Download } from 'lucide-react';
+
+        // Konfigurasi Firebase Asli
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVt3g3nvqyoFxA2wTK-F1906Z30cAatAw",
+            authDomain: "sipenjamin-kuningan.firebaseapp.com",
+            projectId: "sipenjamin-kuningan",
+            storageBucket: "sipenjamin-kuningan.firebasestorage.app",
+            messagingSenderId: "945037790128",
+            appId: "1:945037790128:web:d237c4e7ef3bf0fd172475"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Kredensial Cloudinary
+        const CLOUDINARY_CLOUD_NAME = 'df0pv49ad';
+        const CLOUDINARY_UPLOAD_PRESET = 'sipenjamin_preset';
+
+        const wilayahKuningan = {
+          "Ciawigebang": ["Ciawigebang", "Ciawilor", "Cigarukgak", "Cihaur", "Cihirup", "Cijagamulya", "Cikubangmulya", "Ciomas", "Ciputat", "Dukuhdalem", "Geresik", "Kadurama", "Kapandayan", "Karangkamulyan", "Keramatmulya", "Lebaksiuh", "Mekarjaya", "Padarama", "Pajawanlor", "Pamijahan", "Pangkalan", "Sidaraja", "Sukadana", "Sukaraja"],
+          "Cibeureum": ["Cibeureum", "Cimara", "Kawungsari", "Randusari", "Sukadana", "Sukarapih", "Sumurwiru", "Tarikolot"],
+          "Cibingbin": ["Bantarpanjang", "Ciangir", "Cibingbin", "Cipondok", "Cisaat", "Citenjo", "Dukuhbadag", "Sindangjawa", "Sukaharja", "Sukamaju"],
+          "Cidahu": ["Bunder", "Cibulan", "Cidahu", "Cieurih", "Cihideunggirang", "Cihideunghilir", "Cikeusik", "Datar", "Jatimulya", "Kertawinangun", "Legok", "Nanggela"],
+          "Cigandamekar": ["Babakanjati", "Bunigeulis", "Cibuntu", "Indapatra", "Jambugeulis", "Karangmuncang", "Koreak", "Panawuan", "Sangkanmulya", "Sangkanurip", "Timbang"],
+          "Cigugur": ["Babakanmulya", "Cileuleuy", "Cisantana", "Gunungkeling", "Puncak", "Cigadung", "Cigugur", "Cipari", "Sukamulya", "Winduherang"],
+          "Cilebak": ["Bungurberes", "Cilebak", "Cilimusari", "Jalatrang", "Legokherang", "Mandapajaya", "Patala"],
+          "Cilimus": ["Bandorasa Kulon", "Bandorasa Wetan", "Bojong", "Caracas", "Cibeureum", "Cilimus", "Kaliaren", "Linggaindah", "Linggajati", "Linggamekar", "Linggasana", "Sampora", "Setianegara"],
+          "Cimahi": ["Cikeusal", "Cileuya", "Cimahi", "Cimulya", "Gunungsari", "Kananga", "Margamukti", "Mekarjaya", "Mulyajaya", "Sukajaya"],
+          "Ciniru": ["Cijemit", "Ciniru", "Cipedes", "Gunungmanik", "Longkewang", "Mungkaldatar", "Pamupukan", "Pinara", "Rambatan"],
+          "Cipicung": ["Cimaranten", "Cipicung", "Karoya", "Mekarsari", "Muncangela", "Pamulihan", "Salareuma", "Suganangan", "Sukamukti", "Susukan"],
+          "Ciwaru": ["Baok", "Cilayung", "Citikur", "Citundun", "Ciwaru", "Garajati", "Karangbaru", "Lebakherang", "Linggajaya", "Sagaranten", "Sumberjaya"],
+          "Darma": ["Bakom", "Cageur", "Cikupa", "Cimenga", "Cipasung", "Darma", "Gunungsirah", "Jagara", "Karanganyar", "Karangsari", "Kawahmanuk", "Paninggaran", "Parung", "Sagarahiang", "Sakerta Barat", "Sakerta Timur", "Situsari", "Sukarasa", "Tugumulya"],
+          "Garawangi": ["Cikananga", "Cirukem", "Citiusari", "Garawangi", "Gewok", "Kadatuan", "Karamatwangi", "Kutakembaran", "Lengkong", "Mancagar", "Mekarmulya", "Pakembangan", "Purwasari", "Sukaimut", "Sukamulya", "Tambakbaya", "Tembong"],
+          "Hantara": ["Bunigeulis", "Cikondang", "Citapen", "Hantara", "Pakapasan Girang", "Pakapasan Hilir", "Pasiragung", "Tundagan"],
+          "Jalaksana": ["Babakanmulya", "Ciniru", "Jalaksana", "Maniskidul", "Manislor", "Nanggerang", "Padamenak", "Peusing", "Sadamantra", "Sangkanerang", "Sayana", "Sembawa", "Sidamulya", "Sindangbarang", "Sukamukti"],
+          "Japara": ["Cengal", "Cikeleng", "Citapen", "Dukuhdalem", "Garatengah", "Japara", "Kalimati", "Rajadanu", "Singkup", "Wano"],
+          "Kadugede": ["Babatan", "Bayuning", "Ciherang", "Ciketak", "Cipondok", "Cisukadana", "Kadugede", "Margabakti", "Nangka", "Sindangjawa", "Tinggar", "Windujanten"],
+          "Kalimanggis": ["Cipancur", "Kalimanggis Kulon", "Kalimanggis Wetan", "Kertawana", "Partawangunan", "Wanasaraya"],
+          "Karangkancana": ["Cihanjaro", "Jabranti", "Kaduagung", "Karangkancana", "Margacina", "Segong", "Simpayjaya", "Sukasari", "Tanjungkerta"],
+          "Kramatmulya": ["Bojong", "Cibentang", "Cikaso", "Cikubangsari", "Cilaja", "Cilowa", "Gandasoli", "Gereba", "Kalapagung", "Karamatmulya", "Karangmangu", "Pajambon", "Ragawacana", "Widarasari"],
+          "Kuningan": ["Ancaran", "Cibinuang", "Karangtawang", "Kasturi", "Kedungarum", "Padarek", "Awirarangan", "Cigintung", "Cijoho", "Ciporang", "Cirendang", "Citangtu", "Kuningan", "Purwawinangun", "Winduhaji", "Windusengkahan"],
+          "Lebakwangi": ["Bendungan", "Cinagara", "Cineumbeuy", "Cipetir", "Langseb", "Lebakwangi", "Mancagar", "Manggari", "Mekarwangi", "Pagundan", "Pajawankidul", "Pasayangan", "Sindang"],
+          "Luragung": ["Benda", "Cigedang", "Cikandang", "Cikaduwetan", "Cirahayu", "Dukuhmaja", "Dukuhpicung", "Gunungkarung", "Luragunglandeuh", "Luragungtonggoh", "Margasari", "Panyosogan", "Sindangsari", "Sindangsuka", "Walaharcageur", "Wilanagara"],
+          "Maleber": ["Buniasih", "Cikahuripan", "Cipakem", "Ciporang", "Dukuhtengah", "Galaherang", "Garahaji", "Giriwaringin", "Karangtengah", "Kutamandarakan", "Kutaraja", "Maleber", "Mandalajaya", "Mekarsari", "Padamulya", "Parakan"],
+          "Mandirancan": ["Cirea", "Kertawinangun", "Mandirancan", "Nanggela", "Nanggerangjaya", "Pakembangan", "Randobawagirang", "Randobawailir", "Salakadomas", "Seda", "Sukasari", "Trijaya"],
+          "Nusaherang": ["Ciasih", "Cikadu", "Haurkuning", "Jambar", "Kertawirama", "Kertayuga", "Nusaherang", "Windusari"],
+          "Pancalang": ["Danalampah", "Kahiyangan", "Mekarjaya", "Pancalang", "Patalagan", "Rajawetan", "Sarewu", "Silebu", "Sindangkempeng", "Sumbakeling", "Tajurbuntu", "Tarikolot", "Tenjolayar"],
+          "Pasawahan": ["Cibuntu", "Cidahu", "Cimara", "Ciwiru", "Kaduela", "Padabeunghar", "Padamatang", "Paniis", "Pasawahan", "Singkup"],
+          "Selajambe": ["Bagawat", "Cantilan", "Ciberung", "Jamberama", "Kutawaringin", "Padahurip", "Selajambe"],
+          "Sindangagung": ["Babakanreuma", "Balong", "Dukuhlor", "Kaduagung", "Kertaungaran", "Kertawangunan", "Kertayasa", "Mekarmukti", "Sindangagung", "Sindangsari", "Taraju", "Tirtawangunan"],
+          "Subang": ["Bangunjaya", "Gunungaci", "Jatisari", "Pamulihan", "Situgede", "Subang", "Tangkolo"]
+        };
+
+        // Helper Format Tanggal
+        const formatDateTime = (timestamp) => {
+            if(!timestamp) return "-";
+            const d = new Date(timestamp);
+            return `${d.toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric'})} / ${d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`;
+        };
+
+        // Helper Semua Field Form (Agar detail merender semua)
+        const allFormFields = [
+            "nik", "nama", "ttl", "jk", "alamat", "nokk", "namakk", "nikkk", 
+            "rujukan", "rs_rujukan", "noreg", "skm_desa", "skm_dinsos", "sk_kerja", 
+            "pernyataan", "nik_ayah", "nik_ibu", "rujukan_poned", "scan_dirawat", 
+            "scan_picare", "scan_kia", "scan_partograf", "scan_mkjp", "scan_skm_dinsos", "scan_lahir"
+        ];
+
+        function App() {
+          const [user, setUser] = useState(null);
+          const [appState, setAppState] = useState('loading');
+          
+          const [loginRole, setLoginRole] = useState('desa'); 
+          const [loginKecamatan, setLoginKecamatan] = useState('');
+          const [loginDesa, setLoginDesa] = useState('');
+          const [dinasUsername, setDinasUsername] = useState('');
+          const [password, setPassword] = useState('');
+          const [newPassword, setNewPassword] = useState('');
+          const [confirmPassword, setConfirmPassword] = useState('');
+          const [errorMsg, setErrorMsg] = useState('');
+          const [showPassword, setShowPassword] = useState(false);
+
+          const [currentView, setCurrentView] = useState('dashboard'); 
+          const [currentFormTab, setCurrentFormTab] = useState('umum');
+          const [tableTabFilter, setTableTabFilter] = useState('pending'); // pending, menunggu_ttd, selesai, ditolak
+          
+          const [permohonanList, setPermohonanList] = useState([]);
+          const [akunDesaList, setAkunDesaList] = useState([]);
+          const [adminData, setAdminData] = useState({ password: 'Dinkes2026' });
+          
+          const [detailModalData, setDetailModalData] = useState(null);
+          const [terimaModalId, setTerimaModalId] = useState(null);
+          const [tolakModalId, setTolakModalId] = useState(null);
+          const [tolakAlasan, setTolakAlasan] = useState('');
+          const [hapusTarget, setHapusTarget] = useState(null);
+          
+          // State Khusus Menu Rekomendasi / Upload TTD
+          const [uploadRekomId, setUploadRekomId] = useState(null);
+          const [fileRekomendasi, setFileRekomendasi] = useState(null);
+          
+          const [toastMsg, setToastMsg] = useState('');
+
+          const [confirmApproveId, setConfirmApproveId] = useState(null);
+          const [confirmResetId, setConfirmResetId] = useState(null);
+
+          const [isSubmitting, setIsSubmitting] = useState(false);
+
+          // Fungsi Baru untuk Membuka Dokumen (Menghindari CORS & 401 Cloudinary)
+          const forceDownload = (url) => {
+              showToast("Membuka dokumen...");
+              const cleanUrl = url.replace('/upload/fl_attachment/', '/upload/');
+              window.open(cleanUrl, '_blank');
+          };
+
+          useEffect(() => {
+            const initAuth = async () => {
+              try { await signInAnonymously(auth); } 
+              catch (err) { console.error("Auth error:", err); setErrorMsg("Gagal terhubung ke Authentication."); }
+            };
+            initAuth();
+
+            const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+              setUser(currentUser);
+              if (!currentUser || appState === 'loading') setAppState('login');
+            });
+            return () => unsubscribe();
+          }, []);
+
+          useEffect(() => {
+            if (!user) return; 
+
+            const adminRef = doc(db, 'admin', 'dinkes');
+            const unsubAdmin = onSnapshot(adminRef, (docSnap) => {
+              if (docSnap.exists()) setAdminData(docSnap.data());
+            }, (err) => console.error(err));
+
+            if (appState !== 'dashboard') return;
+
+            const permohonanRef = collection(db, 'permohonan_jamkesda');
+            const unsubscribePermohonan = onSnapshot(permohonanRef, (snapshot) => {
+              const data = [];
+              snapshot.forEach(document => data.push({ id: document.id, ...document.data() }));
+              data.sort((a, b) => b.createdAt - a.createdAt);
+              setPermohonanList(data);
+            }, (err) => console.error(err));
+
+            let unsubscribeAkun = () => {};
+            if (loginRole === 'dinas') {
+              const akunRef = collection(db, 'akun_desa');
+              unsubscribeAkun = onSnapshot(akunRef, (snapshot) => {
+                const akunData = [];
+                snapshot.forEach(document => akunData.push({ id: document.id, ...document.data() }));
+                setAkunDesaList(akunData);
+              }, (err) => console.error(err));
+            }
+
+            return () => { unsubAdmin(); unsubscribePermohonan(); unsubscribeAkun(); };
+          }, [user, appState, loginRole]);
+
+          const showToast = (msg) => {
+             setToastMsg(msg);
+             setTimeout(() => setToastMsg(''), 3000);
+          }
+
+          const handleLogin = async (e) => {
+            e.preventDefault();
+            setErrorMsg('');
+
+            if (loginRole === 'dinas') {
+              const currentAdminPwd = adminData?.password || 'Dinkes2026';
+              if (dinasUsername === 'admin' && password === currentAdminPwd) {
+                setAppState('dashboard');
+                setCurrentView('dashboard');
+                setTableTabFilter('pending');
+                return;
+              } else {
+                setErrorMsg('Username atau Password Dinas salah!');
+                return;
+              }
+            }
+
+            if (!loginKecamatan || !loginDesa || !password) {
+              setErrorMsg('Kecamatan, Desa, dan Password wajib diisi.');
+              return;
+            }
+
+            try {
+              const docId = `${loginKecamatan}_${loginDesa}`.replace(/\s+/g, '_');
+              const akunRef = doc(db, 'akun_desa', docId);
+              const akunSnap = await getDoc(akunRef);
+              
+              if (!akunSnap.exists()) {
+                if (password === 'Jamkesda2026') setAppState('change-password');
+                else setErrorMsg('Password Desa salah atau belum didaftarkan.');
+              } else {
+                const dataAkun = akunSnap.data();
+                if (password !== dataAkun.password) {
+                  setErrorMsg('Password Desa salah.');
+                  return;
+                }
+                if (dataAkun.status === 'pending') setAppState('waiting-approval');
+                else if (dataAkun.status === 'approved') {
+                  setAppState('dashboard');
+                  setCurrentView('dashboard');
+                  setTableTabFilter('pending');
+                }
+              }
+            } catch (err) { 
+                setErrorMsg('Gagal memverifikasi akun. Cek Rules Firestore Anda.'); 
+            }
+          };
+
+          const handleChangePassword = async (e) => {
+            e.preventDefault();
+            if (newPassword.length < 6) { setErrorMsg('Password baru minimal 6 karakter.'); return; }
+            if (newPassword !== confirmPassword) { setErrorMsg('Konfirmasi password tidak cocok.'); return; }
+            try {
+              const docId = `${loginKecamatan}_${loginDesa}`.replace(/\s+/g, '_');
+              await setDoc(doc(db, 'akun_desa', docId), {
+                kecamatan: loginKecamatan, desa: loginDesa, password: newPassword, status: 'pending', updatedAt: Date.now()
+              });
+              setAppState('waiting-approval');
+            } catch (err) { setErrorMsg('Gagal menyimpan.'); }
+          };
+
+          const handleAddPermohonan = async (e) => {
+            e.preventDefault();
+            setIsSubmitting(true);
+            const form = e.target;
+            const fd = new FormData(form);
+            const rawData = Object.fromEntries(fd.entries());
+            
+            const nik = rawData.nik;
+            const nama = rawData.nama;
+            
+            if(!nik || !nama) {
+                showToast("NIK dan Nama wajib diisi!");
+                setIsSubmitting(false); return;
+            }
+
+            const detailData = {};
+            // Init all fields so they appear in modal later
+            allFormFields.forEach(f => detailData[f] = "");
+
+            for (const [key, value] of fd.entries()) {
+                if (value instanceof File) detailData[key] = null;
+                else detailData[key] = value || "";
+            }
+
+            const uploadPromises = [];
+            Array.from(form.elements).forEach(el => {
+                if(el.type === 'file' && el.files.length > 0) {
+                    const file = el.files[0];
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                    const uploadTask = fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+                        method: 'POST', body: formData
+                    })
+                    .then(async res => {
+                        if (!res.ok) {
+                            // Tangkap pesan error ASLI dari Cloudinary
+                            const errData = await res.json();
+                            throw new Error(errData.error?.message || "Gagal upload ke Cloudinary");
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.secure_url) detailData[el.name] = { url: data.secure_url, path: data.public_id, name: file.name };
+                    });
+                    
+                    uploadPromises.push(uploadTask);
+                }
+            });
+
+            try {
+              if (uploadPromises.length > 0) showToast("Mengunggah dokumen... Mohon tunggu");
+              await Promise.all(uploadPromises); 
+
+              await addDoc(collection(db, 'permohonan_jamkesda'), {
+                nik: nik, nama: nama, kategori: currentFormTab,
+                kecamatan: loginKecamatan, desa: loginDesa,
+                status: 'pending', operatorId: user.uid,
+                createdAt: Date.now(), detail: detailData
+              });
+              
+              form.reset();
+              setCurrentView('dashboard');
+              setTableTabFilter('pending');
+              showToast("Permohonan berhasil dikirim!");
+            } catch (err) { showToast(`Gagal: ${err.message}`); } 
+            finally { setIsSubmitting(false); }
+          };
+
+          const eksekusiHapus = async () => {
+              if (!hapusTarget) return;
+              try { await deleteDoc(doc(db, 'permohonan_jamkesda', hapusTarget.id)); showToast("Data berhasil dihapus"); } 
+              catch(e){ showToast("Gagal menghapus data"); }
+              setHapusTarget(null);
+          };
+
+          const eksekusiTerima = async () => {
+             if(terimaModalId) {
+                // Alur Baru: status pending -> menunggu_ttd (Menu Rekom)
+                await updateDoc(doc(db, 'permohonan_jamkesda', terimaModalId), { 
+                    status: 'menunggu_ttd',
+                    waktu_verifikasi: Date.now()
+                });
+                setTerimaModalId(null);
+                setTableTabFilter('menunggu_ttd');
+                showToast("Verifikasi Selesai. Masuk ke Menu Rekomendasi.");
+             }
+          }
+
+          const eksekusiUploadRekomendasi = async () => {
+             if(!uploadRekomId || !fileRekomendasi) { showToast("Pilih file PDF/Gambar terlebih dahulu!"); return; }
+             setIsSubmitting(true);
+             
+             const formData = new FormData();
+             formData.append('file', fileRekomendasi);
+             formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+             try {
+                showToast("Mengunggah Rekomendasi Ter-TTD...");
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: 'POST', body: formData });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error?.message || "Gagal upload file ke Cloudinary");
+                }
+                
+                const data = await res.json();
+                
+                if (data.secure_url) {
+                    await updateDoc(doc(db, 'permohonan_jamkesda', uploadRekomId), { 
+                        status: 'selesai',
+                        waktu_selesai: Date.now(),
+                        file_rekomendasi: { url: data.secure_url, name: fileRekomendasi.name }
+                    });
+                    setUploadRekomId(null);
+                    setFileRekomendasi(null);
+                    setTableTabFilter('selesai');
+                    showToast("Dokumen TTD Berhasil Dikirim ke Desa!");
+                } else { throw new Error('Upload Gagal, URL tidak ditemukan'); }
+             } catch(err) {
+                 console.error(err); showToast(`Gagal Upload: ${err.message}`);
+             } finally { setIsSubmitting(false); }
+          }
+
+          const eksekusiTolak = async () => {
+             if(!tolakAlasan) { showToast("Alasan wajib diisi"); return; }
+             if(tolakModalId) {
+                await updateDoc(doc(db, 'permohonan_jamkesda', tolakModalId), { 
+                    status: 'ditolak', 
+                    alasan: tolakAlasan,
+                    waktu_penolakan: Date.now()
+                });
+                setTolakModalId(null);
+                setTolakAlasan('');
+                setTableTabFilter('ditolak');
+                showToast("Permohonan Ditolak.");
+             }
+          }
+
+          const eksekusiSetujuAkun = async () => {
+            if(!confirmApproveId) return;
+            await updateDoc(doc(db, 'akun_desa', confirmApproveId), {status: 'approved'});
+            setConfirmApproveId(null); showToast('Sandi Baru Disetujui');
+          };
+
+          const eksekusiResetAkun = async () => {
+            if(!confirmResetId) return;
+            await deleteDoc(doc(db, 'akun_desa', confirmResetId));
+            setConfirmResetId(null); showToast('Akun dikembalikan ke Default');
+          };
+
+          const cetakDraftRekomendasiPDF = (data) => {
+            let win = window.open('', '_blank');
+            let dateStr = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+            let content = `
+                <html>
+                <head>
+                    <title>Draft Rekomendasi - ${data.nama}</title>
+                    <style>
+                        body { font-family: 'Times New Roman', Times, serif; padding: 40px; line-height: 1.6; color: #000; }
+                        .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                        .title { font-weight: bold; font-size: 18px; text-align: center; text-decoration: underline; margin-bottom: 30px; }
+                        table { width: 100%; margin-bottom: 20px; font-size:15px; }
+                        td { padding: 5px; vertical-align: top; }
+                        .td-label { width: 30%; }
+                        .td-colon { width: 2%; }
+                        .footer { margin-top: 50px; text-align: right; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <div style="position:fixed; top:40%; left:20%; font-size:120px; color:rgba(200,200,200,0.3); transform:rotate(-45deg); z-index:-1; pointer-events:none;">DRAFT</div>
+                    <div class="header">
+                        <h2 style="margin:0; font-size:22px;">PEMERINTAH KABUPATEN KUNINGAN</h2>
+                        <h1 style="margin:5px 0; font-size:26px;">DINAS KESEHATAN</h1>
+                        <p style="margin:0; font-size:14px;">Jl. Raya Cirendang No. 123, Kuningan, Jawa Barat</p>
+                    </div>
+                    <div class="title">SURAT REKOMENDASI JAMKESDA</div>
+                    <p>Berdasarkan hasil verifikasi data permohonan JAMKESDA kategori <b>${data.kategori ? data.kategori.toUpperCase() : 'UMUM'}</b> dari Desa <b>${data.desa}</b>, dengan ini menerangkan bahwa:</p>
+                    <table>
+                        <tr><td class="td-label">Nama Lengkap</td><td class="td-colon">:</td><td><b>${data.nama}</b></td></tr>
+                        <tr><td class="td-label">Nomor Induk Kependudukan</td><td class="td-colon">:</td><td>${data.nik}</td></tr>
+                        <tr><td class="td-label">Alamat / Desa</td><td class="td-colon">:</td><td>${(data.detail && data.detail.alamat) || '-'} - Desa ${data.desa}</td></tr>
+                    </table>
+                    <p>Memenuhi syarat untuk menerima bantuan Jaminan Kesehatan Daerah (JAMKESDA) Kabupaten Kuningan tahun anggaran berjalan.</p>
+                    <p>Demikian surat rekomendasi ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>
+                    <div class="footer">
+                        <p>Kuningan, ${dateStr}</p>
+                        <div style="width:200px; height:100px; display:flex; align-items:flex-end; justify-content:center; margin-left:auto; border-bottom:1px dotted #000; margin-top:40px;">
+                            ( Kepala Dinas / Pejabat Berwenang )
+                        </div>
+                    </div>
+                    <script>setTimeout(() => { window.print(); }, 1000);<\/script>
+                </body>
+                </html>
+            `;
+            win.document.write(content);
+            win.document.close();
+          };
+
+          if (appState === 'loading') return <div className="min-h-screen flex items-center justify-center bg-gray-50"><RefreshCw size={32} className="animate-spin text-purple-600" /></div>;
+          if (appState === 'waiting-approval') {
+              return (
+              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-800 to-indigo-900 p-4">
+                  <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+                  <div className="bg-purple-100 p-4 rounded-full mb-4 mx-auto w-fit"><Clock className="text-purple-600" size={36} /></div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Menunggu Persetujuan</h2>
+                  <p className="text-gray-600 mb-6 text-sm">Pengajuan sandi baru untuk <strong>Desa {loginDesa}</strong> sedang diproses Dinas Kesehatan.</p>
+                  <button onClick={() => { setAppState('login'); setPassword(''); }} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg shadow-sm">Kembali Login</button>
+                  </div>
+              </div>
+              );
+          }
+          if (appState === 'change-password') {
+              return (
+              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-800 to-indigo-900 p-4">
+                  <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+                  <div className="flex flex-col items-center mb-6 text-center">
+                      <div className="bg-yellow-100 p-3 rounded-full mb-3"><AlertCircle className="text-yellow-600" size={32} /></div>
+                      <h2 className="text-xl font-bold text-gray-800">Ubah Password Default</h2>
+                  </div>
+                  {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded flex items-center"><AlertCircle size={16} className="mr-2" /> {errorMsg}</div>}
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                      <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg border-gray-300" placeholder="Sandi Baru (Min. 6)" />
+                      <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg border-gray-300" placeholder="Konfirmasi Sandi Baru" />
+                      <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg">Ajukan Perubahan</button>
+                      <button type="button" onClick={() => setAppState('login')} className="w-full text-gray-500 hover:text-gray-700 py-2 text-sm">Batal</button>
+                  </form>
+                  </div>
+              </div>
+              );
+          }
+          if (appState === 'login') {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}>
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-4 border-purple-800">
+                    <div className="flex flex-col items-center mb-6">
+                        <div className="bg-purple-100 p-3 rounded-full mb-3"><Shield className="text-purple-800" size={36} /></div>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">SiPenjamin</h1>
+                        <p className="text-xs font-semibold text-gray-500 text-center mt-1 tracking-widest uppercase">Kabupaten Kuningan</p>
+                    </div>
+                    <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+                        <button onClick={() => { setLoginRole('desa'); setPassword(''); setErrorMsg(''); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${loginRole === 'desa' ? 'bg-white shadow text-purple-800' : 'text-gray-500'}`}>Operator Desa</button>
+                        <button onClick={() => { setLoginRole('dinas'); setPassword(''); setErrorMsg(''); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${loginRole === 'dinas' ? 'bg-white shadow text-purple-800' : 'text-gray-500'}`}>Admin Dinkes</button>
+                    </div>
+                    {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-lg flex items-center"><AlertCircle size={16} className="mr-2 min-w-[16px]" /> {errorMsg}</div>}
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        {loginRole === 'desa' ? (
+                        <>
+                            <select value={loginKecamatan} onChange={(e) => { setLoginKecamatan(e.target.value); setLoginDesa(''); }} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"><option value="">Pilih Kecamatan...</option>{Object.keys(wilayahKuningan).sort().map(kec => <option key={kec} value={kec}>{kec}</option>)}</select>
+                            <select value={loginDesa} onChange={(e) => setLoginDesa(e.target.value)} disabled={!loginKecamatan} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white disabled:bg-gray-100"><option value="">Pilih Desa...</option>{loginKecamatan && wilayahKuningan[loginKecamatan].sort().map(desa => <option key={desa} value={desa}>{desa}</option>)}</select>
+                        </>
+                        ) : (
+                        <input type="text" value={dinasUsername} onChange={(e) => setDinasUsername(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" placeholder="Username Admin (admin)" />
+                        )}
+                        <div className="relative">
+                            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg pr-10" placeholder="Password" />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-purple-700">
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+                        <button type="submit" className="w-full bg-purple-800 hover:bg-purple-900 text-white font-bold py-3 rounded-lg flex items-center justify-center mt-2 transition shadow-lg"><LogIn size={20} className="mr-2" /> Masuk Aplikasi</button>
+                    </form>
+                    </div>
+                </div>
+            );
+          }
+
+          // FILTERING DATA
+          let dataToShow = permohonanList.filter(d => loginRole === 'dinas' || d.desa === loginDesa);
+          let pendUmum = 0, pendSalin = 0, pendBayi = 0;
+          dataToShow.forEach(d => {
+              if(d.status === 'pending') {
+                  if(d.kategori === 'umum') pendUmum++;
+                  else if(d.kategori === 'persalinan') pendSalin++;
+                  else if(d.kategori === 'bayi') pendBayi++;
+              }
+          });
+          
+          let filteredTableData = dataToShow.filter(d => d.status === tableTabFilter);
+
+          return (
+            <div className="min-h-screen bg-[#f4f4f6] flex flex-col relative text-gray-800 font-sans">
+                <nav className="bg-[#4a148c] text-white shadow-md sticky top-0 z-40">
+                    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between h-16">
+                            <div className="flex items-center">
+                                <button onClick={() => setCurrentView('dashboard')} className="p-2 rounded-md hover:bg-[#6a1b9a]" title="Beranda"><Menu size={24} /></button>
+                                <span className="ml-3 font-extrabold text-xl hidden sm:block tracking-wide">SiPenjamin - Kab. Kuningan</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm font-bold bg-[#7b1fa2] px-3 py-1.5 rounded-full flex items-center shadow-inner">
+                                   {loginRole === 'dinas' ? <Shield size={16} className="mr-2"/> : <MapPin size={16} className="mr-2"/>}
+                                   {loginRole === 'dinas' ? 'Admin Dinkes' : `Desa ${loginDesa}`}
+                                </span>
+                                {loginRole === 'dinas' && <button onClick={() => setCurrentView('akun')} className="text-sm bg-white text-[#4a148c] font-bold hover:bg-gray-200 px-3 py-1.5 rounded-md shadow">Kelola Sandi Desa</button>}
+                                <button onClick={() => { setAppState('login'); setPassword(''); }} className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md font-bold flex items-center shadow"><LogIn size={16} className="mr-1 rotate-180"/> Keluar</button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+
+                <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Dashboard Utama */}
+                    {currentView === 'dashboard' && (
+                        <div className="space-y-6 animate-zoom-in">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('umum'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-blue-500 shadow-md transition ${loginRole === 'desa' ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`}>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{loginRole === 'desa' ? '+ Form Umum' : 'Pending Umum'}</p>
+                                    <div className="mt-2 flex items-center justify-between"><p className="text-4xl font-black text-blue-600">{pendUmum}</p><FileText className="text-blue-200" size={40}/></div>
+                                </div>
+                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('persalinan'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-pink-500 shadow-md transition ${loginRole === 'desa' ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`}>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{loginRole === 'desa' ? '+ Form Persalinan' : 'Pending Persalinan'}</p>
+                                    <div className="mt-2 flex items-center justify-between"><p className="text-4xl font-black text-pink-600">{pendSalin}</p><Users className="text-pink-200" size={40}/></div>
+                                </div>
+                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('bayi'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-green-500 shadow-md transition ${loginRole === 'desa' ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`}>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{loginRole === 'desa' ? '+ Form Bayi' : 'Pending Bayi'}</p>
+                                    <div className="mt-2 flex items-center justify-between"><p className="text-4xl font-black text-green-600">{pendBayi}</p><PlusCircle className="text-green-200" size={40}/></div>
+                                </div>
+                            </div>
+
+                            {}
+                            {/* TABEL DATA MIRIP SCREENSHOT */}
+                            <div className="mt-8 bg-white border border-gray-200 shadow-sm">
+                                {/* Navigation Tabs for Table */}
+                                <div className="flex border-b border-gray-200 bg-gray-100 overflow-x-auto">
+                                    <button onClick={() => setTableTabFilter('pending')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'pending' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Menunggu Verifikasi</button>
+                                    <button onClick={() => setTableTabFilter('menunggu_ttd')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'menunggu_ttd' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Menu Rekom (TTD)</button>
+                                    <button onClick={() => setTableTabFilter('selesai')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'selesai' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Selesai / Diterima</button>
+                                    <button onClick={() => setTableTabFilter('ditolak')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'ditolak' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Ditolak</button>
+                                </div>
+                                
+                                {/* Title and Search Header (Visual only for now to match screenshot) */}
+                                <div className="p-4 bg-[#f3e5f5] border-b border-[#e1bee7] flex justify-between items-center">
+                                    <h2 className="text-lg font-bold text-[#4a148c]">
+                                        {tableTabFilter === 'pending' && 'Daftar Permohonan Masuk'}
+                                        {tableTabFilter === 'menunggu_ttd' && 'Daftar Surat Rekomendasi Pelayanan Jamkesda (Siap Tanda Tangan)'}
+                                        {tableTabFilter === 'selesai' && 'Daftar Surat Rekomendasi Selesai'}
+                                        {tableTabFilter === 'ditolak' && 'Daftar Permohonan Rekomendasi Pelayanan Jamkesda yang Ditolak'}
+                                    </h2>
+                                    <div className="flex gap-2">
+                                        <input type="text" placeholder="NIK" className="border px-3 py-1.5 text-sm" disabled />
+                                        <input type="text" placeholder="Desa" className="border px-3 py-1.5 text-sm" disabled />
+                                        <button className="bg-[#4a148c] text-white px-4 py-1.5 text-sm font-bold rounded shadow">Cari</button>
+                                    </div>
+                                </div>
+
+                                <div className="overflow-x-auto p-4 bg-[#fafafa]">
+                                    <table className="table-custom w-full">
+                                        <thead>
+                                            <tr>
+                                                <th className="w-12 text-center">No</th>
+                                                <th>NIK</th>
+                                                <th>Nama</th>
+                                                <th>Alamat</th>
+                                                <th>Desa</th>
+                                                <th>Kecamatan</th>
+                                                
+                                                {tableTabFilter === 'pending' && <th>Waktu Pengajuan</th>}
+                                                {tableTabFilter === 'menunggu_ttd' && <th>Waktu Verifikasi</th>}
+                                                {tableTabFilter === 'selesai' && <th>Waktu Selesai</th>}
+                                                
+                                                {tableTabFilter === 'ditolak' && (
+                                                    <>
+                                                        <th>Waktu Permohonan</th>
+                                                        <th>Waktu Penolakan</th>
+                                                        <th>Alasan</th>
+                                                    </>
+                                                )}
+                                                
+                                                {tableTabFilter !== 'ditolak' && <th>Penginput</th>}
+                                                <th className="text-center w-24">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredTableData.length > 0 ? filteredTableData.map((item, index) => (
+                                                <tr key={item.id}>
+                                                    <td className="text-center font-medium">{index + 1}.</td>
+                                                    <td className="font-mono text-gray-700">{item.nik || '-'}</td>
+                                                    <td className="font-bold text-[#4a148c] uppercase">{item.nama}</td>
+                                                    <td className="text-xs">{item.detail?.alamat || '-'}</td>
+                                                    <td>{item.desa}</td>
+                                                    <td>{item.kecamatan}</td>
+                                                    
+                                                    {tableTabFilter === 'pending' && <td className="text-xs">{formatDateTime(item.createdAt)}</td>}
+                                                    {tableTabFilter === 'menunggu_ttd' && <td className="text-xs">{formatDateTime(item.waktu_verifikasi)}</td>}
+                                                    {tableTabFilter === 'selesai' && <td className="text-xs text-green-700 font-semibold">{formatDateTime(item.waktu_selesai)}</td>}
+                                                    
+                                                    {tableTabFilter === 'ditolak' && (
+                                                        <>
+                                                            <td className="text-xs">{formatDateTime(item.createdAt)}</td>
+                                                            <td className="text-xs">{formatDateTime(item.waktu_penolakan)}</td>
+                                                            <td className="text-xs text-red-600">{item.alasan}</td>
+                                                        </>
+                                                    )}
+                                                    
+                                                    {tableTabFilter !== 'ditolak' && <td className="text-xs">{item.kategori === 'dinas' ? 'dinas' : 'desa'}</td>}
+                                                    
+                                                    <td className="text-center align-middle">
+                                                        <div className="flex flex-wrap justify-center gap-1.5">
+                                                            {/* Semua tab ada tombol lihat rincian */}
+                                                            <button onClick={() => setDetailModalData(item)} className="bg-[#4a148c] text-white p-1.5 rounded hover:bg-[#6a1b9a]" title="Lihat Detail Form"><FileText size={14}/></button>
+
+                                                            {/* TAB: PENDING */}
+                                                            {tableTabFilter === 'pending' && loginRole === 'dinas' && (
+                                                                <>
+                                                                    <button onClick={() => setTerimaModalId(item.id)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700" title="Verifikasi Selesai (Lanjut ke Menu Rekom)"><Check size={14}/></button>
+                                                                    <button onClick={() => setTolakModalId(item.id)} className="bg-red-600 text-white p-1.5 rounded hover:bg-red-700" title="Tolak"><X size={14}/></button>
+                                                                </>
+                                                            )}
+                                                            {tableTabFilter === 'pending' && loginRole === 'desa' && (
+                                                                <button onClick={() => setHapusTarget(item)} className="bg-red-600 text-white p-1.5 rounded hover:bg-red-700" title="Hapus Pengajuan"><Trash2 size={14}/></button>
+                                                            )}
+
+                                                            {/* TAB: MENU REKOM (MENUNGGU TTD) */}
+                                                            {tableTabFilter === 'menunggu_ttd' && loginRole === 'dinas' && (
+                                                                <>
+                                                                    <button onClick={() => cetakDraftRekomendasiPDF(item)} className="bg-gray-600 text-white p-1.5 rounded hover:bg-gray-700" title="Unduh/Print Draft Rekomendasi"><Printer size={14}/></button>
+                                                                    <button onClick={() => setUploadRekomId(item.id)} className="bg-blue-600 text-white p-1.5 rounded hover:bg-blue-700" title="Upload Rekomendasi TTD & Selesaikan"><UploadCloud size={14}/></button>
+                                                                </>
+                                                            )}
+
+                                                            {/* TAB: SELESAI */}
+                                                            {tableTabFilter === 'selesai' && (
+                                                                <>
+                                                                    {item.file_rekomendasi?.url && (
+                                                                        <button onClick={() => forceDownload(item.file_rekomendasi.url)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700 flex items-center justify-center" title="Unduh File Rekomendasi">
+                                                                            <Download size={14}/>
+                                                                        </button>
+                                                                    )}
+                                                                </>
+                                                            )}
+
+                                                            {/* HAPUS GLOBAL UNTUK ADMIN */}
+                                                            {loginRole === 'dinas' && (
+                                                                <button onClick={() => setHapusTarget(item)} className="bg-gray-200 text-red-600 p-1.5 rounded hover:bg-red-100" title="Hapus Data (Superadmin)"><Trash2 size={14}/></button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )) : (
+                                                <tr><td colSpan="10" className="text-center py-8 text-gray-500 italic">Tidak ada data untuk status ini.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {}
+                    {/* Form Input Permohonan (Desa) */}
+                    {currentView === 'form' && loginRole === 'desa' && (
+                        <div className="space-y-6 animate-zoom-in">
+                            <div className="flex justify-between items-center mb-6">
+                                <div><h1 className="text-2xl font-bold text-gray-900">Formulir Permohonan</h1><p className="text-sm text-gray-500">Isi data permohonan JAMKESDA berdasarkan kategori.</p></div>
+                                <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-bold hover:bg-gray-300 shadow">&larr; Batal & Kembali</button>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+                                <div className="flex border-b border-gray-200 bg-gray-50">
+                                    <button onClick={() => setCurrentFormTab('umum')} className={`flex-1 py-4 px-4 text-center text-sm transition ${currentFormTab === 'umum' ? 'tab-btn active' : 'text-gray-500 hover:bg-gray-200 font-medium'}`}>UMUM</button>
+                                    <button onClick={() => setCurrentFormTab('persalinan')} className={`flex-1 py-4 px-4 text-center text-sm transition ${currentFormTab === 'persalinan' ? 'tab-btn active' : 'text-gray-500 hover:bg-gray-200 font-medium'}`}>PERSALINAN</button>
+                                    <button onClick={() => setCurrentFormTab('bayi')} className={`flex-1 py-4 px-4 text-center text-sm transition ${currentFormTab === 'bayi' ? 'tab-btn active' : 'text-gray-500 hover:bg-gray-200 font-medium'}`}>BAYI</button>
+                                </div>
+
+                                <div className="p-8 border-t-8 border-[#5e35b1] bg-white">
+                                    <form onSubmit={handleAddPermohonan}>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-5 mb-8">
+                                            {/* Field Umum/Bersama */}
+                                            <div className="space-y-4">
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK</label><input type="text" name="nik" required className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] focus:border-[#5e35b1] bg-gray-50" placeholder="NIK" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama</label><input type="text" name="nama" required className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nama" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Tempat, Tanggal Lahir</label><input type="text" name="ttl" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Tempat, Tanggal Lahir" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Jenis Kelamin</label><input type="text" name="jk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Jenis Kelamin" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Alamat</label><input type="text" name="alamat" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Alamat" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">No KK</label><input type="text" name="nokk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="No KK" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama Kepala Keluarga</label><input type="text" name="namakk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nama Kepala Keluarga" /></div>
+                                                
+                                                {currentFormTab === 'umum' && (
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">Nik Kepala Keluarga</label><input type="text" name="nikkk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nik Kepala Keluarga" /></div>
+                                                )}
+
+                                                {currentFormTab === 'bayi' && (
+                                                    <>
+                                                        <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK Ayah</label><input type="text" name="nik_ayah" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="NIK Ayah" /></div>
+                                                        <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK Ibu</label><input type="text" name="nik_ibu" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="NIK Ibu" /></div>
+                                                    </>
+                                                )}
+
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Desa</label><input type="text" name="desa_readonly" value={loginDesa} readOnly className="w-full text-sm p-2.5 border border-gray-200 rounded bg-gray-100 text-gray-500 font-medium" /></div>
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Kecamatan</label><input type="text" name="kecamatan_readonly" value={loginKecamatan} readOnly className="w-full text-sm p-2.5 border border-gray-200 rounded bg-gray-100 text-gray-500 font-medium" /></div>
+                                            </div>
+
+                                            {/* Field Kolom Kanan */}
+                                            <div className="space-y-4">
+                                                {currentFormTab !== 'bayi' && (
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Rujukan Puskesmas</label><input type="text" name="rujukan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Surat Rujukan Puskesmas" /></div>
+                                                )}
+                                                {currentFormTab === 'bayi' && (
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Rujukan Puskesmas (Poned)</label><input type="text" name="rujukan_poned" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Surat Rujukan Puskesmas (Poned)" /></div>
+                                                )}
+                                                
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">No Register Rumah Sakit</label><input type="text" name="noreg" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Register Rumah Sakit" /></div>
+                                                
+                                                {currentFormTab !== 'umum' && (
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Dirawat (RS)</label><input type="text" name="sk_dirawat" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SK Dirawat" /></div>
+                                                )}
+
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Miskin (Desa)</label><input type="text" name="skm_desa" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SKM Desa" /></div>
+                                                
+                                                {currentFormTab !== 'bayi' && (
+                                                    <>
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Miskin (Dinsos)</label><input type="text" name="skm_dinsos" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SKM Dinsos" /></div>
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Kerja (Desa)</label><input type="text" name="sk_kerja" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SK Kerja" /></div>
+                                                    </>
+                                                )}
+
+                                                {currentFormTab === 'umum' && (
+                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Pernyataan Materai 10000</label><input type="text" name="pernyataan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Pernyataan" /></div>
+                                                )}
+
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama Rumah Sakit Rujukan</label>
+                                                    <select name="rs_rujukan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50">
+                                                        <option value="RSUD 45 Kuningan">RSUD 45 Kuningan</option>
+                                                        <option value="RS Linggajati">RS Linggajati</option>
+                                                        <option value="RS Juanda">RS Juanda</option>
+                                                        <option value="RS KMC">RS KMC</option>
+                                                        <option value="RS Sekar Kamulyan">RS Sekar Kamulyan</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* File Uploads */}
+                                                <div className="pt-4 border-t mt-4 border-gray-200 space-y-3">
+                                                    <h3 className="font-bold text-sm text-[#4a148c] mb-2">Unggah Dokumen (PDF/Gambar)</h3>
+                                                    {currentFormTab === 'umum' && (
+                                                        <>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Surat Keterangan Dirawat (RS)</label><input type="file" name="scan_dirawat" className="w-full text-sm text-gray-600 bg-white border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Picare</label><input type="file" name="scan_picare" className="w-full text-sm text-gray-600 bg-white border border-gray-300 rounded p-1" /></div>
+                                                        </>
+                                                    )}
+                                                    {currentFormTab === 'persalinan' && (
+                                                        <>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Picare Puskesmas</label><input type="file" name="scan_picare" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Buku KIA</label><input type="file" name="scan_kia" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Partograf</label><input type="file" name="scan_partograf" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan MKJP</label><input type="file" name="scan_mkjp" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                        </>
+                                                    )}
+                                                    {currentFormTab === 'bayi' && (
+                                                        <>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">SKM Dinas Sosial</label><input type="file" name="scan_skm_dinsos" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Surat Keterangan Lahir (RS)</label><input type="file" name="scan_lahir" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Surat Keterangan Dirawat</label><input type="file" name="scan_dirawat" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-center border-t border-gray-200 pt-8 mt-4">
+                                            <button type="submit" disabled={isSubmitting} className="px-16 py-3.5 bg-[#4a148c] text-white rounded-md text-sm font-bold shadow-lg hover:bg-[#6a1b9a] transition flex items-center tracking-widest uppercase">
+                                                {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={18}/> : null}
+                                                Kirim Permohonan
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Akun Management (Admin) */}
+                    {currentView === 'akun' && loginRole === 'dinas' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-zoom-in">
+                            <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h2 className="font-bold text-gray-800">Verifikasi & Manajemen Sandi Desa</h2><button onClick={()=>setCurrentView('dashboard')} className="text-sm bg-gray-200 px-3 py-1 rounded shadow">Kembali</button></div>
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-[#4a148c] text-white text-xs"><tr><th className="px-6 py-3 w-12">No</th><th className="px-6 py-3">Wilayah</th><th className="px-6 py-3 text-center">Status & Aksi</th></tr></thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {akunDesaList.map((akun, i) => (
+                                    <tr key={akun.id} className={akun.status==='pending' ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                                        <td className="px-6 py-4 font-medium">{i + 1}</td>
+                                        <td className="px-6 py-4"><div className="font-bold text-gray-800 uppercase">Desa {akun.desa}</div><div className="text-xs text-gray-500">Kec. {akun.kecamatan}</div>{akun.status === 'pending' && <div className="text-xs text-blue-700 mt-1 font-mono bg-blue-100 px-2 py-0.5 rounded inline-block">Req Password Baru: {akun.password}</div>}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            {akun.status === 'pending' ? (
+                                                <div className="flex justify-center gap-2">
+                                                    <button onClick={() => setConfirmApproveId(akun.id)} className="bg-green-600 text-white px-3 py-1.5 rounded shadow hover:bg-green-700 font-bold text-xs">Setujui</button>
+                                                    <button onClick={() => setConfirmResetId(akun.id)} className="bg-red-600 text-white px-3 py-1.5 rounded shadow hover:bg-red-700 font-bold text-xs">Tolak (Reset)</button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-center items-center gap-3">
+                                                    <span className="text-green-700 text-xs font-bold bg-green-100 px-3 py-1 rounded-full border border-green-200">✓ Aktif</span>
+                                                    <button onClick={() => setConfirmResetId(akun.id)} className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition" title="Hapus & Reset ke Default"><Trash2 size={16}/></button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    ))}
+                                    {akunDesaList.length === 0 && <tr><td colSpan="3" className="text-center py-8 text-gray-400">Belum ada desa yang mengajukan password baru.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </main>
+
+                {}
+                {/* Modal Detail Penuh */}
+                {detailModalData && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
+                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+                            <div className="px-6 py-4 bg-[#5b3278] flex justify-between items-center text-white">
+                                <h3 className="text-lg font-bold">Detail Form ({detailModalData.kategori?.toUpperCase()})</h3>
+                                <button onClick={() => setDetailModalData(null)} className="text-white hover:text-red-300"><X size={24}/></button>
+                            </div>
+                            <div className="px-6 py-6 overflow-y-auto flex-1 bg-gray-50 text-sm grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="col-span-full mb-2 bg-white p-4 rounded shadow-sm border border-gray-100 flex justify-between">
+                                    <div><span className="text-gray-500 text-[10px] font-bold tracking-widest block uppercase">PEMOHON / NIK</span><span className="font-black text-xl text-[#4a148c]">{detailModalData.nama}</span><br/><span className="font-mono text-gray-600 bg-gray-100 px-1 py-0.5 rounded">{detailModalData.nik}</span></div>
+                                    <div className="text-right"><span className="text-gray-500 text-[10px] font-bold tracking-widest block uppercase">WILAYAH</span><span className="font-bold text-gray-800">Desa {detailModalData.desa}</span><br/><span className="text-gray-600">Kec. {detailModalData.kecamatan}</span></div>
+                                </div>
+                                {/* Loop semua field, tampilkan '-' jika kosong */}
+                                {allFormFields.map((fieldKey) => {
+                                    // Skip field khusus file untuk dirender terpisah nanti
+                                    if(fieldKey.startsWith('scan_')) return null;
+                                    const val = detailModalData.detail ? detailModalData.detail[fieldKey] : null;
+                                    return (
+                                        <div key={fieldKey} className="bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                            <span className="text-[#5b3278] text-[10px] uppercase font-bold block mb-1">{fieldKey.replace(/_/g, ' ')}</span>
+                                            <span className="font-medium text-gray-800">{val ? val : <em className="text-gray-400 font-light">- Tidak Diisi -</em>}</span>
+                                        </div>
+                                    );
+                                })}
+                                {/* Loop khusus File Dokumen */}
+                                <div className="col-span-full mt-4 border-t pt-4"><h4 className="font-bold text-[#4a148c] mb-3">Lampiran Dokumen</h4></div>
+                                {allFormFields.map((fieldKey) => {
+                                    if(!fieldKey.startsWith('scan_')) return null;
+                                    const v = detailModalData.detail ? detailModalData.detail[fieldKey] : null;
+                                    const isFile = v && typeof v === 'object' && v.url;
+                                    return (
+                                        <div key={fieldKey} className="bg-white p-3 rounded border border-gray-100 shadow-sm flex flex-col justify-center">
+                                            <span className="text-[#5b3278] text-[10px] uppercase font-bold block mb-1">{fieldKey.replace(/_/g, ' ')}</span>
+                                            {isFile ? (
+                                                <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 font-bold flex items-center bg-blue-50 px-2 py-1.5 rounded w-fit text-xs border border-blue-100">
+                                                    <FileText size={14} className="mr-1"/> Buka Dokumen ({v.name})
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs italic">- Tidak ada lampiran -</span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Menu Rekom: Upload Rekomendasi (Admin) */}
+                {uploadRekomId && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4 animate-zoom-in">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="px-6 py-4 bg-[#5b3278] text-white flex items-center"><FileSignature className="mr-2" size={20}/><h3 className="text-lg font-bold">Unggah Rekomendasi (TTD)</h3></div>
+                            <div className="p-6 bg-gray-50">
+                                <p className="text-sm text-gray-700 mb-4 font-medium">Unggah berkas Rekomendasi (PDF/Gambar) yang sudah dicetak dan ditandatangani oleh pejabat berwenang.</p>
+                                <div className="border-2 border-dashed border-[#5b3278] rounded-lg p-6 bg-white text-center">
+                                    <input type="file" onChange={(e) => setFileRekomendasi(e.target.files[0])} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer" accept="application/pdf,image/*" />
+                                </div>
+                            </div>
+                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3">
+                                <button onClick={()=>{setUploadRekomId(null); setFileRekomendasi(null);}} className="px-5 py-2.5 rounded shadow text-sm font-bold text-gray-700 bg-white border hover:bg-gray-50">Batal</button>
+                                <button onClick={eksekusiUploadRekomendasi} disabled={isSubmitting} className="px-5 py-2.5 rounded shadow text-sm font-bold text-white bg-[#4a148c] hover:bg-[#6a1b9a] flex items-center">
+                                    {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={16}/> : <CheckCircle2 className="mr-2" size={16}/>}
+                                    Simpan & Kirim ke Desa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Persetujuan Masuk (ke Menu Rekom) */}
+                {terimaModalId && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
+                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="px-6 py-4 border-b bg-green-50"><h3 className="text-lg font-black text-green-800">Verifikasi Disetujui</h3></div>
+                            <div className="p-6"><p className="text-sm text-gray-700 font-medium">Pengajuan ini akan disetujui secara sistem dan dipindahkan ke <strong>Menu Rekomendasi</strong> untuk menunggu proses pencetakan & tanda tangan basah.</p></div>
+                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3"><button onClick={()=>setTerimaModalId(null)} className="px-5 py-2 bg-white border rounded shadow-sm text-sm font-bold text-gray-700 hover:bg-gray-50">Batal</button><button onClick={eksekusiTerima} className="px-5 py-2 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 flex items-center">Lanjutkan <Check className="ml-1" size={16}/></button></div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Tolak */}
+                {tolakModalId && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
+                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="px-6 py-4 border-b bg-red-800 text-white"><h3 className="text-lg font-bold">Tolak Permohonan</h3></div>
+                            <div className="p-6 bg-gray-50"><label className="block text-sm font-bold text-gray-700 mb-2">Alasan Penolakan</label><textarea value={tolakAlasan} onChange={e=>setTolakAlasan(e.target.value)} rows="4" className="w-full border-gray-300 rounded-md shadow-sm border p-3 text-sm focus:ring-red-500" placeholder="Tuliskan alasan lengkap..."></textarea></div>
+                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3"><button onClick={()=>setTolakModalId(null)} className="px-5 py-2 border rounded shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50">Batal</button><button onClick={eksekusiTolak} className="px-5 py-2 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-red-600 hover:bg-red-700">Tolak Permohonan</button></div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Hapus */}
+                {hapusTarget && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
+                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b bg-red-50"><h3 className="text-lg font-bold text-red-800">Hapus Permanen?</h3></div>
+                            <div className="p-6 text-center">
+                                <Trash2 size={40} className="mx-auto text-red-400 mb-3"/>
+                                <p className="text-sm text-gray-700 mb-2">Hapus pengajuan atas nama<br/><strong>{hapusTarget.nama}</strong>?</p>
+                                <p className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded">Tindakan ini tidak dapat dibatalkan!</p>
+                            </div>
+                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3"><button onClick={()=>setHapusTarget(null)} className="px-4 py-2 border rounded shadow-sm text-sm font-bold text-gray-700 bg-white">Batal</button><button onClick={eksekusiHapus} className="px-4 py-2 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-red-600 hover:bg-red-700">Ya, Hapus!</button></div>
+                        </div>
+                    </div>
+                )}
+
+                <div className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-[#311b51] text-white px-8 py-3 rounded-full shadow-2xl transition-all duration-300 z-50 flex items-center font-bold tracking-wide ${toastMsg ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>{toastMsg}</div>
+            </div>
+          );
+        }
+
+        const rootElement = document.getElementById('root');
+        const root = createRoot(rootElement);
+        root.render(<App />);
+    </script>
+</body>
+</html>
