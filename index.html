@@ -7,6 +7,8 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tambahan Library untuk Export Excel (XLSX) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
     <script type="importmap">
     {
@@ -51,7 +53,7 @@
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-        import { Lock, LogIn, KeyRound, CheckCircle2, LayoutDashboard, FileText, Search, PlusCircle, AlertCircle, RefreshCw, MapPin, Shield, Users, Trash2, X, Check, XCircle, Clock, Eye, EyeOff, Menu, Printer, Info, CheckSquare, UploadCloud, FileSignature, Download } from 'lucide-react';
+        import { Lock, LogIn, KeyRound, CheckCircle2, LayoutDashboard, FileText, Search, PlusCircle, AlertCircle, RefreshCw, MapPin, Shield, Users, Trash2, X, Check, XCircle, Clock, Eye, EyeOff, Menu, Printer, Info, CheckSquare, UploadCloud, FileSignature, Download, Sheet } from 'lucide-react';
 
         // Konfigurasi Firebase Asli
         const firebaseConfig = {
@@ -106,11 +108,12 @@
           "Subang": ["Bangunjaya", "Gunungaci", "Jatisari", "Pamulihan", "Situgede", "Subang", "Tangkolo"]
         };
 
-        // Helper Format Tanggal
+        // Helper Format Tanggal untuk Tabel & Export
         const formatDateTime = (timestamp) => {
             if(!timestamp) return "-";
             const d = new Date(timestamp);
-            return `${d.toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric'})} / ${d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`;
+            const pad = (num) => num.toString().padStart(2, '0');
+            return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()} / ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
         };
 
         // Helper Semua Field Form (Agar detail merender semua)
@@ -119,6 +122,23 @@
             "rujukan", "rs_rujukan", "noreg", "skm_desa", "skm_dinsos", "sk_kerja", 
             "pernyataan", "nik_ayah", "nik_ibu", "rujukan_poned", "scan_dirawat", 
             "scan_picare", "scan_kia", "scan_partograf", "scan_mkjp", "scan_skm_dinsos", "scan_lahir"
+        ];
+
+        // Daftar Lengkap Rumah Sakit (Urutan Prioritas: Milik Pemerintah)
+        const daftarRS = [
+            "RS Umum Daerah 45 Kuningan",
+            "RS Umum Daerah Linggajati Kuningan",
+            "RS Umum Wijaya Kusumah",
+            "RS Umum Sekar Kamulyan",
+            "RS Umum Juanda",
+            "RS Umum El - Syifa",
+            "RS Umum Kuningan Medical Center",
+            "RS Umum KMC Luragung",
+            "RS Jantung Hasna Medika Kuningan",
+            "RS Mitra Husada Ciawigebang",
+            "RS Umum Aria Kamuning",
+            "RS Permata Kuningan",
+            "RUMAH SAKIT PRADIPA MEDIKA"
         ];
 
         function App() {
@@ -137,7 +157,13 @@
 
           const [currentView, setCurrentView] = useState('dashboard'); 
           const [currentFormTab, setCurrentFormTab] = useState('umum');
-          const [tableTabFilter, setTableTabFilter] = useState('pending'); // pending, menunggu_ttd, selesai, ditolak
+          const [tableTabFilter, setTableTabFilter] = useState('pending'); // Filter Proses (Pending, Menunggu TTD, Selesai, Ditolak)
+          
+          // State Khusus Filter Export Lanjutan
+          const [filterBulan, setFilterBulan] = useState('');
+          const [filterTahun, setFilterTahun] = useState(new Date().getFullYear().toString());
+          const [filterKec, setFilterKec] = useState('');
+          const [filterDesa, setFilterDesa] = useState('');
           
           const [permohonanList, setPermohonanList] = useState([]);
           const [akunDesaList, setAkunDesaList] = useState([]);
@@ -149,7 +175,6 @@
           const [tolakAlasan, setTolakAlasan] = useState('');
           const [hapusTarget, setHapusTarget] = useState(null);
           
-          // State Khusus Menu Rekomendasi / Upload TTD
           const [uploadRekomId, setUploadRekomId] = useState(null);
           const [fileRekomendasi, setFileRekomendasi] = useState(null);
           
@@ -160,11 +185,27 @@
 
           const [isSubmitting, setIsSubmitting] = useState(false);
 
-          // Fungsi Baru untuk Membuka Dokumen (Menghindari CORS & 401 Cloudinary)
-          const forceDownload = (url) => {
-              showToast("Membuka dokumen...");
-              const cleanUrl = url.replace('/upload/fl_attachment/', '/upload/');
-              window.open(cleanUrl, '_blank');
+          // Fungsi Unduh File (Bypass Cloudinary)
+          const forceDownload = async (url, fileName) => {
+              showToast("Memulai unduhan...");
+              try {
+                  const cleanUrl = url.replace('/upload/fl_attachment/', '/upload/');
+                  const response = await fetch(cleanUrl);
+                  if (!response.ok) throw new Error('Gagal mengambil file');
+                  
+                  const blob = await response.blob();
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = blobUrl;
+                  link.download = fileName || 'Dokumen_Rekomendasi.pdf';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(blobUrl);
+              } catch (error) {
+                  console.error('Gagal mengunduh via script:', error);
+                  window.open(url.replace('/upload/fl_attachment/', '/upload/'), '_blank');
+              }
           };
 
           useEffect(() => {
@@ -294,7 +335,6 @@
             }
 
             const detailData = {};
-            // Init all fields so they appear in modal later
             allFormFields.forEach(f => detailData[f] = "");
 
             for (const [key, value] of fd.entries()) {
@@ -313,18 +353,15 @@
                     const uploadTask = fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
                         method: 'POST', body: formData
                     })
-                    .then(async res => {
-                        if (!res.ok) {
-                            // Tangkap pesan error ASLI dari Cloudinary
-                            const errData = await res.json();
-                            throw new Error(errData.error?.message || "Gagal upload ke Cloudinary");
-                        }
-                        return res.json();
-                    })
+                    .then(res => res.json())
                     .then(data => {
                         if (data.secure_url) detailData[el.name] = { url: data.secure_url, path: data.public_id, name: file.name };
+                        else if (data.error) throw new Error(data.error.message);
+                    }).catch(err => {
+                        console.error("Cloudinary Error:", err);
+                        showToast(`File gagal diupload: ${err.message}`);
+                        detailData[el.name] = null;
                     });
-                    
                     uploadPromises.push(uploadTask);
                 }
             });
@@ -357,7 +394,6 @@
 
           const eksekusiTerima = async () => {
              if(terimaModalId) {
-                // Alur Baru: status pending -> menunggu_ttd (Menu Rekom)
                 await updateDoc(doc(db, 'permohonan_jamkesda', terimaModalId), { 
                     status: 'menunggu_ttd',
                     waktu_verifikasi: Date.now()
@@ -379,12 +415,6 @@
              try {
                 showToast("Mengunggah Rekomendasi Ter-TTD...");
                 const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: 'POST', body: formData });
-                
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.error?.message || "Gagal upload file ke Cloudinary");
-                }
-                
                 const data = await res.json();
                 
                 if (data.secure_url) {
@@ -397,9 +427,11 @@
                     setFileRekomendasi(null);
                     setTableTabFilter('selesai');
                     showToast("Dokumen TTD Berhasil Dikirim ke Desa!");
-                } else { throw new Error('Upload Gagal, URL tidak ditemukan'); }
+                } else if (data.error) {
+                    throw new Error(data.error.message);
+                }
              } catch(err) {
-                 console.error(err); showToast(`Gagal Upload: ${err.message}`);
+                 console.error(err); showToast(`Upload Gagal: ${err.message}`);
              } finally { setIsSubmitting(false); }
           }
 
@@ -428,6 +460,54 @@
             if(!confirmResetId) return;
             await deleteDoc(doc(db, 'akun_desa', confirmResetId));
             setConfirmResetId(null); showToast('Akun dikembalikan ke Default');
+          };
+
+          // FUNGSI EXPORT KE EXCEL (XLSX)
+          const exportToExcel = () => {
+            if (!filteredTableData || filteredTableData.length === 0) {
+                showToast("Tidak ada data untuk diexport");
+                return;
+            }
+
+            const exportData = filteredTableData.map((item, index) => {
+                let row = {
+                    "No": index + 1,
+                    "NIK": item.nik || "-",
+                    "Nama": item.nama || "-",
+                    "Kategori": item.kategori?.toUpperCase() || "-",
+                    "Tempat Tanggal Lahir": item.detail?.ttl || "-",
+                    "Jenis Kelamin": item.detail?.jk || "-",
+                    "Alamat": item.detail?.alamat || "-",
+                    "Desa": item.desa || "-",
+                    "Kecamatan": item.kecamatan || "-",
+                    "Status": item.status?.toUpperCase().replace('_', ' ') || "-",
+                    "Waktu Pengajuan": formatDateTime(item.createdAt)
+                };
+
+                if (item.status === 'menunggu_ttd') row["Waktu Verifikasi"] = formatDateTime(item.waktu_verifikasi);
+                if (item.status === 'selesai') row["Waktu Selesai"] = formatDateTime(item.waktu_selesai);
+                if (item.status === 'ditolak') {
+                    row["Waktu Penolakan"] = formatDateTime(item.waktu_penolakan);
+                    row["Alasan Ditolak"] = item.alasan || "-";
+                }
+
+                return row;
+            });
+
+            // Gunakan SheetJS
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Jamkesda");
+
+            // Pembuatan Nama File
+            let filename = `Data_Jamkesda_${tableTabFilter.toUpperCase()}`;
+            if(filterBulan) filename += `_Bulan-${filterBulan}`;
+            if(filterTahun) filename += `_Tahun-${filterTahun}`;
+            if(filterKec) filename += `_${filterKec}`;
+            if(filterDesa) filename += `_${filterDesa}`;
+            filename += ".xlsx";
+
+            XLSX.writeFile(workbook, filename);
           };
 
           const cetakDraftRekomendasiPDF = (data) => {
@@ -547,9 +627,10 @@
             );
           }
 
-          // FILTERING DATA
+          // FILTERING DATA (Disesuaikan dengan Tab Proses & Pilihan Filter Lanjutan)
           let dataToShow = permohonanList.filter(d => loginRole === 'dinas' || d.desa === loginDesa);
           let pendUmum = 0, pendSalin = 0, pendBayi = 0;
+          
           dataToShow.forEach(d => {
               if(d.status === 'pending') {
                   if(d.kategori === 'umum') pendUmum++;
@@ -558,7 +639,30 @@
               }
           });
           
+          // Filter 1: Tab Proses (Pending, Menunggu TTD, Selesai, Ditolak)
           let filteredTableData = dataToShow.filter(d => d.status === tableTabFilter);
+
+          // Filter 2: Bulan
+          if (filterBulan) {
+              filteredTableData = filteredTableData.filter(d => {
+                  const m = new Date(d.createdAt).getMonth() + 1;
+                  return m.toString() === filterBulan;
+              });
+          }
+
+          // Filter 3: Tahun
+          if (filterTahun) {
+              filteredTableData = filteredTableData.filter(d => {
+                  const y = new Date(d.createdAt).getFullYear();
+                  return y.toString() === filterTahun;
+              });
+          }
+
+          // Filter 4: Wilayah (Hanya untuk Admin)
+          if (loginRole === 'dinas') {
+              if (filterKec) filteredTableData = filteredTableData.filter(d => d.kecamatan === filterKec);
+              if (filterDesa) filteredTableData = filteredTableData.filter(d => d.desa === filterDesa);
+          }
 
           return (
             <div className="min-h-screen bg-[#f4f4f6] flex flex-col relative text-gray-800 font-sans">
@@ -602,9 +706,9 @@
                             </div>
 
                             {}
-                            {/* TABEL DATA MIRIP SCREENSHOT */}
+                            {/* TABEL DATA & FILTER */}
                             <div className="mt-8 bg-white border border-gray-200 shadow-sm">
-                                {/* Navigation Tabs for Table */}
+                                {/* Navigation Tabs for Table (Mewakili Filter PROSES) */}
                                 <div className="flex border-b border-gray-200 bg-gray-100 overflow-x-auto">
                                     <button onClick={() => setTableTabFilter('pending')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'pending' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Menunggu Verifikasi</button>
                                     <button onClick={() => setTableTabFilter('menunggu_ttd')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'menunggu_ttd' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Menu Rekom (TTD)</button>
@@ -612,18 +716,57 @@
                                     <button onClick={() => setTableTabFilter('ditolak')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'ditolak' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Ditolak</button>
                                 </div>
                                 
-                                {/* Title and Search Header (Visual only for now to match screenshot) */}
-                                <div className="p-4 bg-[#f3e5f5] border-b border-[#e1bee7] flex justify-between items-center">
+                                {/* Title and Filter Controls */}
+                                <div className="p-4 bg-[#f3e5f5] border-b border-[#e1bee7] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                                     <h2 className="text-lg font-bold text-[#4a148c]">
                                         {tableTabFilter === 'pending' && 'Daftar Permohonan Masuk'}
-                                        {tableTabFilter === 'menunggu_ttd' && 'Daftar Surat Rekomendasi Pelayanan Jamkesda (Siap Tanda Tangan)'}
+                                        {tableTabFilter === 'menunggu_ttd' && 'Daftar Rekomendasi (Siap Tanda Tangan)'}
                                         {tableTabFilter === 'selesai' && 'Daftar Surat Rekomendasi Selesai'}
-                                        {tableTabFilter === 'ditolak' && 'Daftar Permohonan Rekomendasi Pelayanan Jamkesda yang Ditolak'}
+                                        {tableTabFilter === 'ditolak' && 'Daftar Permohonan yang Ditolak'}
                                     </h2>
-                                    <div className="flex gap-2">
-                                        <input type="text" placeholder="NIK" className="border px-3 py-1.5 text-sm" disabled />
-                                        <input type="text" placeholder="Desa" className="border px-3 py-1.5 text-sm" disabled />
-                                        <button className="bg-[#4a148c] text-white px-4 py-1.5 text-sm font-bold rounded shadow">Cari</button>
+                                    
+                                    <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+                                        {/* Filter Bulan & Tahun */}
+                                        <select value={filterBulan} onChange={e=>setFilterBulan(e.target.value)} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium focus:outline-none">
+                                            <option value="">Semua Bulan</option>
+                                            <option value="1">Januari</option>
+                                            <option value="2">Februari</option>
+                                            <option value="3">Maret</option>
+                                            <option value="4">April</option>
+                                            <option value="5">Mei</option>
+                                            <option value="6">Juni</option>
+                                            <option value="7">Juli</option>
+                                            <option value="8">Agustus</option>
+                                            <option value="9">September</option>
+                                            <option value="10">Oktober</option>
+                                            <option value="11">November</option>
+                                            <option value="12">Desember</option>
+                                        </select>
+                                        <select value={filterTahun} onChange={e=>setFilterTahun(e.target.value)} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium focus:outline-none">
+                                            <option value="">Semua Tahun</option>
+                                            <option value="2024">2024</option>
+                                            <option value="2025">2025</option>
+                                            <option value="2026">2026</option>
+                                        </select>
+
+                                        {/* Filter Wilayah Khusus Admin */}
+                                        {loginRole === 'dinas' && (
+                                            <>
+                                                <select value={filterKec} onChange={e=>{setFilterKec(e.target.value); setFilterDesa('');}} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium max-w-[120px] focus:outline-none">
+                                                    <option value="">Semua Kec</option>
+                                                    {Object.keys(wilayahKuningan).sort().map(k => <option key={k} value={k}>{k}</option>)}
+                                                </select>
+                                                <select value={filterDesa} onChange={e=>setFilterDesa(e.target.value)} disabled={!filterKec} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium max-w-[120px] disabled:bg-gray-200 focus:outline-none">
+                                                    <option value="">Semua Desa</option>
+                                                    {filterKec && wilayahKuningan[filterKec].sort().map(d => <option key={d} value={d}>{d}</option>)}
+                                                </select>
+                                            </>
+                                        )}
+
+                                        {/* Tombol Export Excel */}
+                                        <button onClick={exportToExcel} className="bg-[#107c41] hover:bg-[#0c5e31] text-white px-4 py-1.5 text-xs font-bold rounded shadow flex items-center xl:ml-2 transition-colors">
+                                            <Sheet size={14} className="mr-1.5"/> EXPORT XLSX
+                                        </button>
                                     </div>
                                 </div>
 
@@ -676,7 +819,7 @@
                                                         </>
                                                     )}
                                                     
-                                                    {tableTabFilter !== 'ditolak' && <td className="text-xs">{item.kategori === 'dinas' ? 'dinas' : 'desa'}</td>}
+                                                    {tableTabFilter !== 'ditolak' && <td className="text-xs">{item.operatorId === 'dinas' ? 'dinas' : 'desa'}</td>}
                                                     
                                                     <td className="text-center align-middle">
                                                         <div className="flex flex-wrap justify-center gap-1.5">
@@ -706,7 +849,7 @@
                                                             {tableTabFilter === 'selesai' && (
                                                                 <>
                                                                     {item.file_rekomendasi?.url && (
-                                                                        <button onClick={() => forceDownload(item.file_rekomendasi.url)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700 flex items-center justify-center" title="Unduh File Rekomendasi">
+                                                                        <button onClick={() => forceDownload(item.file_rekomendasi.url, item.file_rekomendasi.name || `Rekomendasi_${item.nama}.pdf`)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700 flex items-center justify-center" title="Unduh File Rekomendasi">
                                                                             <Download size={14}/>
                                                                         </button>
                                                                     )}
@@ -754,7 +897,16 @@
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK</label><input type="text" name="nik" required className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] focus:border-[#5e35b1] bg-gray-50" placeholder="NIK" /></div>
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama</label><input type="text" name="nama" required className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nama" /></div>
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">Tempat, Tanggal Lahir</label><input type="text" name="ttl" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Tempat, Tanggal Lahir" /></div>
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Jenis Kelamin</label><input type="text" name="jk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Jenis Kelamin" /></div>
+                                                
+                                                {/* PERBAIKAN: Input Jenis Kelamin diubah jadi Dropdown Select */}
+                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Jenis Kelamin</label>
+                                                    <select name="jk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" required>
+                                                        <option value="">Pilih Jenis Kelamin...</option>
+                                                        <option value="Laki-laki">Laki-laki</option>
+                                                        <option value="Perempuan">Perempuan</option>
+                                                    </select>
+                                                </div>
+                                                
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">Alamat</label><input type="text" name="alamat" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Alamat" /></div>
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">No KK</label><input type="text" name="nokk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="No KK" /></div>
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama Kepala Keluarga</label><input type="text" name="namakk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nama Kepala Keluarga" /></div>
@@ -804,11 +956,8 @@
 
                                                 <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama Rumah Sakit Rujukan</label>
                                                     <select name="rs_rujukan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50">
-                                                        <option value="RSUD 45 Kuningan">RSUD 45 Kuningan</option>
-                                                        <option value="RS Linggajati">RS Linggajati</option>
-                                                        <option value="RS Juanda">RS Juanda</option>
-                                                        <option value="RS KMC">RS KMC</option>
-                                                        <option value="RS Sekar Kamulyan">RS Sekar Kamulyan</option>
+                                                        <option value="">Pilih Rumah Sakit...</option>
+                                                        {daftarRS.map(rs => <option key={rs} value={rs}>{rs}</option>)}
                                                     </select>
                                                 </div>
 
