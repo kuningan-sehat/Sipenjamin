@@ -7,55 +7,97 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tambahan Library untuk Export Excel (XLSX) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
-    <script type="importmap">
-    {
-        "imports": {
-            "react": "https://esm.sh/react@18.2.0",
-            "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-            "firebase/app": "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js",
-            "firebase/auth": "https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js",
-            "lucide-react": "https://esm.sh/lucide-react@0.292.0?external=react"
-        }
-    }
-    </script>
-    
     <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f4f4f5; margin: 0; padding: 0; }
-        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .animate-zoom-in { animation: zoomIn 0.2s ease-out forwards; }
-        .tab-btn.active { border-bottom: 3px solid #5e35b1; color: #5e35b1; font-weight: 700; background-color: #f3e8ff; }
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            background-color: #f4f4f5; 
+            margin: 0; 
+            padding: 0; 
+        }
+        @keyframes zoomIn { 
+            from { opacity: 0; transform: scale(0.95); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
+        .animate-zoom-in { 
+            animation: zoomIn 0.2s ease-out forwards; 
+        }
+        .tab-btn.active { 
+            border-bottom: 3px solid #5e35b1; 
+            color: #5e35b1; 
+            font-weight: 700; 
+            background-color: #f3e8ff; 
+        }
         
-        /* Custom Scrollbar for better UX */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #ab47bc; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #8e24aa; }
 
-        /* Tabel Custom Sesuai Screenshot */
-        .table-custom th { background-color: #5b3278; color: white; text-align: left; padding: 12px 16px; font-weight: 600; font-size: 13px; border: 1px solid #7c5295; }
-        .table-custom td { padding: 12px 16px; font-size: 13px; color: #333; border: 1px solid #e0e0e0; vertical-align: top; }
+        .table-custom th { 
+            background-color: #5b3278; 
+            color: white; 
+            text-align: left; 
+            padding: 12px 16px; 
+            font-weight: 600; 
+            font-size: 13px; 
+            border: 1px solid #7c5295; 
+        }
+        .table-custom td { 
+            padding: 12px 16px; 
+            font-size: 13px; 
+            color: #333; 
+            border: 1px solid #e0e0e0; 
+            vertical-align: top; 
+        }
         .table-custom tr:nth-child(even) { background-color: #ffffff; }
         .table-custom tr:nth-child(odd) { background-color: #fdfcff; }
         .table-custom tr:hover { background-color: #f3e5f5; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <!-- Logger Darurat jika ada error loading module -->
+    <div id="error-log" style="color: #b91c1c; background: #fee2e2; font-family: monospace; font-size: 12px; position: fixed; top: 0; width: 100%; z-index: 9999;"></div>
+    <script>
+        window.addEventListener('error', function(e) {
+            document.getElementById('error-log').innerHTML += '<div style="padding: 8px; border-bottom: 1px solid #fca5a5;">🔥 ' + (e.message || 'Error loading resource: ' + e.target.src) + '</div>';
+        }, true);
+    </script>
 
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-        import { Lock, LogIn, KeyRound, CheckCircle2, LayoutDashboard, FileText, Search, PlusCircle, AlertCircle, RefreshCw, MapPin, Shield, Users, Trash2, X, Check, XCircle, Clock, Eye, EyeOff, Menu, Printer, Info, CheckSquare, UploadCloud, FileSignature, Download, Sheet } from 'lucide-react';
+    <!-- Fallback Text untuk mencegah Blank Screen jika JS telat merespon -->
+    <div id="root">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f4f4f5; color: #4a148c; font-family: sans-serif;">
+            <svg style="animation: spin 1s linear infinite; width: 40px; height: 40px; margin-bottom: 16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-opacity="0.25"></circle>
+                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <h2 style="margin: 0; font-size: 18px; font-weight: bold;">Mempersiapkan SiPenjamin...</h2>
+            <p style="font-size: 12px; color: #666; margin-top: 8px;">Mengunduh komponen sistem (React & Firebase)</p>
+            <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        </div>
+    </div>
 
-        // Konfigurasi Firebase Asli
+    <!-- Mendaftarkan konfigurasi Babel untuk Classic Runtime -->
+    <script>
+        Babel.registerPreset('react-classic', {
+            presets: [
+                [Babel.availablePresets['react'], { runtime: 'classic' }]
+            ]
+        });
+    </script>
+
+    <script type="text/babel" data-type="module" data-presets="react-classic">
+        
+        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client?deps=react@18.2.0';
+        
+        import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js';
+        
+        import { Lock, LogIn, KeyRound, CheckCircle2, LayoutDashboard, FileText, Search, PlusCircle, AlertCircle, RefreshCw, MapPin, Shield, Users, Trash2, X, Check, XCircle, Clock, Eye, EyeOff, Menu, Printer, Info, CheckSquare, UploadCloud, FileSignature, Download, Sheet } from 'https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0';
+
         const firebaseConfig = {
             apiKey: "AIzaSyAVt3g3nvqyoFxA2wTK-F1906Z30cAatAw",
             authDomain: "sipenjamin-kuningan.firebaseapp.com",
@@ -65,11 +107,10 @@
             appId: "1:945037790128:web:d237c4e7ef3bf0fd172475"
         };
 
-        const app = initializeApp(firebaseConfig);
+        const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Kredensial Cloudinary
         const CLOUDINARY_CLOUD_NAME = 'df0pv49ad';
         const CLOUDINARY_UPLOAD_PRESET = 'sipenjamin_preset';
 
@@ -108,7 +149,6 @@
           "Subang": ["Bangunjaya", "Gunungaci", "Jatisari", "Pamulihan", "Situgede", "Subang", "Tangkolo"]
         };
 
-        // Helper Format Tanggal untuk Tabel & Export
         const formatDateTime = (timestamp) => {
             if(!timestamp) return "-";
             const d = new Date(timestamp);
@@ -116,15 +156,13 @@
             return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()} / ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
         };
 
-        // Helper Semua Field Form (Agar detail merender semua)
         const allFormFields = [
             "nik", "nama", "ttl", "jk", "alamat", "nokk", "namakk", "nikkk", 
             "rujukan", "rs_rujukan", "noreg", "skm_desa", "skm_dinsos", "sk_kerja", 
-            "pernyataan", "nik_ayah", "nik_ibu", "rujukan_poned", "scan_dirawat", 
+            "nik_ayah", "nik_ibu", "rujukan_poned", "scan_pernyataan", "scan_dirawat", 
             "scan_picare", "scan_kia", "scan_partograf", "scan_mkjp", "scan_skm_dinsos", "scan_lahir"
         ];
 
-        // Daftar Lengkap Rumah Sakit (Urutan Prioritas: Milik Pemerintah)
         const daftarRS = [
             "RS Umum Daerah 45 Kuningan",
             "RS Umum Daerah Linggajati Kuningan",
@@ -157,9 +195,8 @@
 
           const [currentView, setCurrentView] = useState('dashboard'); 
           const [currentFormTab, setCurrentFormTab] = useState('umum');
-          const [tableTabFilter, setTableTabFilter] = useState('pending'); // Filter Proses (Pending, Menunggu TTD, Selesai, Ditolak)
+          const [tableTabFilter, setTableTabFilter] = useState('pending');
           
-          // State Khusus Filter Export Lanjutan
           const [filterBulan, setFilterBulan] = useState('');
           const [filterTahun, setFilterTahun] = useState(new Date().getFullYear().toString());
           const [filterKec, setFilterKec] = useState('');
@@ -168,6 +205,11 @@
           const [permohonanList, setPermohonanList] = useState([]);
           const [akunDesaList, setAkunDesaList] = useState([]);
           const [adminData, setAdminData] = useState({ password: 'Dinkes2026' });
+          
+          // State Khusus Admin Password Update
+          const [adminNewPassword, setAdminNewPassword] = useState('');
+          const [showAdminPassword, setShowAdminPassword] = useState(false);
+          const [isAdminUpdating, setIsAdminUpdating] = useState(false);
           
           const [detailModalData, setDetailModalData] = useState(null);
           const [terimaModalId, setTerimaModalId] = useState(null);
@@ -179,39 +221,34 @@
           const [fileRekomendasi, setFileRekomendasi] = useState(null);
           
           const [toastMsg, setToastMsg] = useState('');
-
           const [confirmApproveId, setConfirmApproveId] = useState(null);
           const [confirmResetId, setConfirmResetId] = useState(null);
-
           const [isSubmitting, setIsSubmitting] = useState(false);
 
-          // Fungsi Unduh File (Bypass Cloudinary)
           const forceDownload = async (url, fileName) => {
               showToast("Memulai unduhan...");
               try {
                   const cleanUrl = url.replace('/upload/fl_attachment/', '/upload/');
                   const response = await fetch(cleanUrl);
                   if (!response.ok) throw new Error('Gagal mengambil file');
-                  
                   const blob = await response.blob();
                   const blobUrl = window.URL.createObjectURL(blob);
                   const link = document.createElement('a');
-                  link.href = blobUrl;
-                  link.download = fileName || 'Dokumen_Rekomendasi.pdf';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
+                  link.href = blobUrl; link.download = fileName || 'Dokumen_Rekomendasi.pdf';
+                  document.body.appendChild(link); link.click(); document.body.removeChild(link);
                   window.URL.revokeObjectURL(blobUrl);
               } catch (error) {
-                  console.error('Gagal mengunduh via script:', error);
                   window.open(url.replace('/upload/fl_attachment/', '/upload/'), '_blank');
               }
           };
 
           useEffect(() => {
             const initAuth = async () => {
-              try { await signInAnonymously(auth); } 
-              catch (err) { console.error("Auth error:", err); setErrorMsg("Gagal terhubung ke Authentication."); }
+              try { 
+                  await signInAnonymously(auth); 
+              } catch (err) { 
+                  setErrorMsg("Gagal terhubung ke Server."); 
+              }
             };
             initAuth();
 
@@ -225,21 +262,26 @@
           useEffect(() => {
             if (!user) return; 
 
+            // Listener Sandi Admin
             const adminRef = doc(db, 'admin', 'dinkes');
             const unsubAdmin = onSnapshot(adminRef, (docSnap) => {
-              if (docSnap.exists()) setAdminData(docSnap.data());
-            }, (err) => console.error(err));
+              if (docSnap.exists()) {
+                  setAdminData(docSnap.data());
+              }
+            });
 
             if (appState !== 'dashboard') return;
 
+            // Listener Permohonan
             const permohonanRef = collection(db, 'permohonan_jamkesda');
             const unsubscribePermohonan = onSnapshot(permohonanRef, (snapshot) => {
               const data = [];
               snapshot.forEach(document => data.push({ id: document.id, ...document.data() }));
               data.sort((a, b) => b.createdAt - a.createdAt);
               setPermohonanList(data);
-            }, (err) => console.error(err));
+            });
 
+            // Listener Akun Desa (Hanya Admin)
             let unsubscribeAkun = () => {};
             if (loginRole === 'dinas') {
               const akunRef = collection(db, 'akun_desa');
@@ -247,37 +289,37 @@
                 const akunData = [];
                 snapshot.forEach(document => akunData.push({ id: document.id, ...document.data() }));
                 setAkunDesaList(akunData);
-              }, (err) => console.error(err));
+              });
             }
 
             return () => { unsubAdmin(); unsubscribePermohonan(); unsubscribeAkun(); };
           }, [user, appState, loginRole]);
 
           const showToast = (msg) => {
-             setToastMsg(msg);
+             setToastMsg(msg); 
              setTimeout(() => setToastMsg(''), 3000);
           }
 
           const handleLogin = async (e) => {
-            e.preventDefault();
+            e.preventDefault(); 
             setErrorMsg('');
 
             if (loginRole === 'dinas') {
               const currentAdminPwd = adminData?.password || 'Dinkes2026';
               if (dinasUsername === 'admin' && password === currentAdminPwd) {
-                setAppState('dashboard');
-                setCurrentView('dashboard');
-                setTableTabFilter('pending');
+                setAppState('dashboard'); 
+                setCurrentView('dashboard'); 
+                setTableTabFilter('pending'); 
                 return;
               } else {
-                setErrorMsg('Username atau Password Dinas salah!');
+                setErrorMsg('Username atau Password Dinas salah!'); 
                 return;
               }
             }
 
-            if (!loginKecamatan || !loginDesa || !password) {
-              setErrorMsg('Kecamatan, Desa, dan Password wajib diisi.');
-              return;
+            if (!loginKecamatan || !loginDesa || !password) { 
+                setErrorMsg('Data login belum lengkap.'); 
+                return; 
             }
 
             try {
@@ -286,228 +328,271 @@
               const akunSnap = await getDoc(akunRef);
               
               if (!akunSnap.exists()) {
-                if (password === 'Jamkesda2026') setAppState('change-password');
-                else setErrorMsg('Password Desa salah atau belum didaftarkan.');
+                if (password === 'Jamkesda2026') {
+                    setAppState('change-password');
+                } else {
+                    setErrorMsg('Sandi salah atau belum didaftarkan.');
+                }
               } else {
                 const dataAkun = akunSnap.data();
-                if (password !== dataAkun.password) {
-                  setErrorMsg('Password Desa salah.');
-                  return;
+                if (password !== dataAkun.password) { 
+                    setErrorMsg('Sandi salah.'); 
+                    return; 
                 }
-                if (dataAkun.status === 'pending') setAppState('waiting-approval');
-                else if (dataAkun.status === 'approved') {
-                  setAppState('dashboard');
-                  setCurrentView('dashboard');
+                if (dataAkun.status === 'pending') {
+                    setAppState('waiting-approval');
+                } else if (dataAkun.status === 'approved') {
+                  setAppState('dashboard'); 
+                  setCurrentView('dashboard'); 
                   setTableTabFilter('pending');
                 }
               }
             } catch (err) { 
-                setErrorMsg('Gagal memverifikasi akun. Cek Rules Firestore Anda.'); 
+                setErrorMsg('Gagal memverifikasi akun.'); 
             }
           };
 
           const handleChangePassword = async (e) => {
             e.preventDefault();
-            if (newPassword.length < 6) { setErrorMsg('Password baru minimal 6 karakter.'); return; }
-            if (newPassword !== confirmPassword) { setErrorMsg('Konfirmasi password tidak cocok.'); return; }
+            if (newPassword.length < 6) { setErrorMsg('Sandi minimal 6 karakter.'); return; }
+            if (newPassword !== confirmPassword) { setErrorMsg('Sandi tidak cocok.'); return; }
             try {
               const docId = `${loginKecamatan}_${loginDesa}`.replace(/\s+/g, '_');
-              await setDoc(doc(db, 'akun_desa', docId), {
-                kecamatan: loginKecamatan, desa: loginDesa, password: newPassword, status: 'pending', updatedAt: Date.now()
+              await setDoc(doc(db, 'akun_desa', docId), { 
+                  kecamatan: loginKecamatan, 
+                  desa: loginDesa, 
+                  password: newPassword, 
+                  status: 'pending', 
+                  updatedAt: Date.now() 
               });
               setAppState('waiting-approval');
-            } catch (err) { setErrorMsg('Gagal menyimpan.'); }
+            } catch (err) { 
+                setErrorMsg('Gagal menyimpan.'); 
+            }
+          };
+
+          const handleUpdateAdminPassword = async () => {
+              if(adminNewPassword.length < 6) { 
+                  showToast("Sandi admin minimal 6 karakter!"); 
+                  return; 
+              }
+              setIsAdminUpdating(true);
+              try {
+                  await setDoc(doc(db, 'admin', 'dinkes'), { password: adminNewPassword }, { merge: true });
+                  showToast("Sandi Admin berhasil diperbarui!");
+                  setAdminNewPassword('');
+                  setShowAdminPassword(false);
+              } catch(e) {
+                  showToast("Gagal memperbarui sandi Admin.");
+              } finally {
+                  setIsAdminUpdating(false);
+              }
           };
 
           const handleAddPermohonan = async (e) => {
-            e.preventDefault();
+            e.preventDefault(); 
             setIsSubmitting(true);
-            const form = e.target;
-            const fd = new FormData(form);
+            const form = e.target; 
+            const fd = new FormData(form); 
             const rawData = Object.fromEntries(fd.entries());
             
-            const nik = rawData.nik;
-            const nama = rawData.nama;
-            
-            if(!nik || !nama) {
-                showToast("NIK dan Nama wajib diisi!");
-                setIsSubmitting(false); return;
+            if(!rawData.nik || !rawData.nama) { 
+                showToast("NIK dan Nama wajib diisi!"); 
+                setIsSubmitting(false); 
+                return; 
             }
 
             const detailData = {};
             allFormFields.forEach(f => detailData[f] = "");
-
+            
             for (const [key, value] of fd.entries()) {
                 if (value instanceof File) detailData[key] = null;
                 else detailData[key] = value || "";
             }
 
+            const currentYear = new Date().getFullYear();
+            const folderDesa = `Jamkesda_${currentYear}`;
+
             const uploadPromises = [];
             Array.from(form.elements).forEach(el => {
                 if(el.type === 'file' && el.files.length > 0) {
-                    const file = el.files[0];
+                    const file = el.files[0]; 
                     const formData = new FormData();
-                    formData.append('file', file);
+                    formData.append('file', file); 
                     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                    formData.append('folder', folderDesa); // Auto Folder Tahunan
 
-                    const uploadTask = fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
-                        method: 'POST', body: formData
+                    const uploadTask = fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { 
+                        method: 'POST', body: formData 
                     })
                     .then(res => res.json())
                     .then(data => {
-                        if (data.secure_url) detailData[el.name] = { url: data.secure_url, path: data.public_id, name: file.name };
-                        else if (data.error) throw new Error(data.error.message);
-                    }).catch(err => {
-                        console.error("Cloudinary Error:", err);
-                        showToast(`File gagal diupload: ${err.message}`);
-                        detailData[el.name] = null;
+                        if (data.secure_url) {
+                            detailData[el.name] = { url: data.secure_url, path: data.public_id, name: file.name };
+                        } else if (data.error) {
+                            throw new Error(data.error.message);
+                        }
+                    }).catch(err => { 
+                        detailData[el.name] = null; 
                     });
+                    
                     uploadPromises.push(uploadTask);
                 }
             });
 
             try {
-              if (uploadPromises.length > 0) showToast("Mengunggah dokumen... Mohon tunggu");
+              if (uploadPromises.length > 0) showToast(`Mengunggah dokumen ke folder ${folderDesa}...`);
               await Promise.all(uploadPromises); 
-
-              await addDoc(collection(db, 'permohonan_jamkesda'), {
-                nik: nik, nama: nama, kategori: currentFormTab,
-                kecamatan: loginKecamatan, desa: loginDesa,
-                status: 'pending', operatorId: user.uid,
-                createdAt: Date.now(), detail: detailData
+              
+              await addDoc(collection(db, 'permohonan_jamkesda'), { 
+                  nik: rawData.nik, 
+                  nama: rawData.nama, 
+                  kategori: currentFormTab, 
+                  kecamatan: loginKecamatan, 
+                  desa: loginDesa, 
+                  status: 'pending', 
+                  operatorId: user.uid, 
+                  createdAt: Date.now(), 
+                  detail: detailData 
               });
               
-              form.reset();
-              setCurrentView('dashboard');
-              setTableTabFilter('pending');
-              showToast("Permohonan berhasil dikirim!");
-            } catch (err) { showToast(`Gagal: ${err.message}`); } 
-            finally { setIsSubmitting(false); }
+              form.reset(); 
+              setCurrentView('dashboard'); 
+              setTableTabFilter('pending'); 
+              showToast("Permohonan dikirim!");
+            } catch (err) { 
+                showToast(`Gagal: ${err.message}`); 
+            } finally { 
+                setIsSubmitting(false); 
+            }
           };
 
           const eksekusiHapus = async () => {
               if (!hapusTarget) return;
-              try { await deleteDoc(doc(db, 'permohonan_jamkesda', hapusTarget.id)); showToast("Data berhasil dihapus"); } 
-              catch(e){ showToast("Gagal menghapus data"); }
+              try { 
+                  await deleteDoc(doc(db, 'permohonan_jamkesda', hapusTarget.id)); 
+                  showToast("Data dihapus"); 
+              } catch(e){}
               setHapusTarget(null);
           };
 
           const eksekusiTerima = async () => {
              if(terimaModalId) {
                 await updateDoc(doc(db, 'permohonan_jamkesda', terimaModalId), { 
-                    status: 'menunggu_ttd',
-                    waktu_verifikasi: Date.now()
+                    status: 'menunggu_ttd', 
+                    waktu_verifikasi: Date.now() 
                 });
-                setTerimaModalId(null);
-                setTableTabFilter('menunggu_ttd');
-                showToast("Verifikasi Selesai. Masuk ke Menu Rekomendasi.");
+                setTerimaModalId(null); 
+                setTableTabFilter('menunggu_ttd'); 
+                showToast("Verifikasi Selesai.");
              }
-          }
+          };
 
           const eksekusiUploadRekomendasi = async () => {
-             if(!uploadRekomId || !fileRekomendasi) { showToast("Pilih file PDF/Gambar terlebih dahulu!"); return; }
+             if(!uploadRekomId || !fileRekomendasi) { 
+                 showToast("Pilih file terlebih dahulu!"); 
+                 return; 
+             }
              setIsSubmitting(true);
              
-             const formData = new FormData();
-             formData.append('file', fileRekomendasi);
+             const currentYear = new Date().getFullYear();
+             const folderRekomendasi = `Rekomendasi_${currentYear}`;
+             
+             const formData = new FormData(); 
+             formData.append('file', fileRekomendasi); 
              formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+             formData.append('folder', folderRekomendasi); // Auto Folder Tahunan
 
              try {
-                showToast("Mengunggah Rekomendasi Ter-TTD...");
-                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: 'POST', body: formData });
+                showToast(`Mengunggah TTD ke folder ${folderRekomendasi}...`);
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { 
+                    method: 'POST', body: formData 
+                });
                 const data = await res.json();
                 
                 if (data.secure_url) {
                     await updateDoc(doc(db, 'permohonan_jamkesda', uploadRekomId), { 
-                        status: 'selesai',
-                        waktu_selesai: Date.now(),
-                        file_rekomendasi: { url: data.secure_url, name: fileRekomendasi.name }
+                        status: 'selesai', 
+                        waktu_selesai: Date.now(), 
+                        file_rekomendasi: { url: data.secure_url, name: fileRekomendasi.name } 
                     });
-                    setUploadRekomId(null);
-                    setFileRekomendasi(null);
-                    setTableTabFilter('selesai');
-                    showToast("Dokumen TTD Berhasil Dikirim ke Desa!");
-                } else if (data.error) {
-                    throw new Error(data.error.message);
+                    setUploadRekomId(null); 
+                    setFileRekomendasi(null); 
+                    setTableTabFilter('selesai'); 
+                    showToast("Berhasil Dikirim ke Desa!");
                 }
-             } catch(err) {
-                 console.error(err); showToast(`Upload Gagal: ${err.message}`);
-             } finally { setIsSubmitting(false); }
-          }
+             } catch(err) { 
+                 showToast(`Upload Gagal`); 
+             } finally { 
+                 setIsSubmitting(false); 
+             }
+          };
 
           const eksekusiTolak = async () => {
              if(!tolakAlasan) { showToast("Alasan wajib diisi"); return; }
              if(tolakModalId) {
                 await updateDoc(doc(db, 'permohonan_jamkesda', tolakModalId), { 
                     status: 'ditolak', 
-                    alasan: tolakAlasan,
-                    waktu_penolakan: Date.now()
+                    alasan: tolakAlasan, 
+                    waktu_penolakan: Date.now() 
                 });
-                setTolakModalId(null);
-                setTolakAlasan('');
-                setTableTabFilter('ditolak');
+                setTolakModalId(null); 
+                setTolakAlasan(''); 
+                setTableTabFilter('ditolak'); 
                 showToast("Permohonan Ditolak.");
              }
-          }
+          };
 
-          const eksekusiSetujuAkun = async () => {
-            if(!confirmApproveId) return;
-            await updateDoc(doc(db, 'akun_desa', confirmApproveId), {status: 'approved'});
-            setConfirmApproveId(null); showToast('Sandi Baru Disetujui');
+          const eksekusiSetujuAkun = async (id) => {
+            if(!id) return;
+            try {
+                await updateDoc(doc(db, 'akun_desa', id), {status: 'approved'});
+                showToast('Sandi Baru Disetujui');
+            } catch(e) {
+                showToast('Gagal menyetujui');
+            }
           };
 
           const eksekusiResetAkun = async () => {
             if(!confirmResetId) return;
-            await deleteDoc(doc(db, 'akun_desa', confirmResetId));
-            setConfirmResetId(null); showToast('Akun dikembalikan ke Default');
+            try {
+                await deleteDoc(doc(db, 'akun_desa', confirmResetId));
+                setConfirmResetId(null); 
+                showToast('Akun direset ke Default');
+            } catch(e) {
+                showToast('Gagal mereset');
+            }
           };
 
-          // FUNGSI EXPORT KE EXCEL (XLSX)
           const exportToExcel = () => {
-            if (!filteredTableData || filteredTableData.length === 0) {
-                showToast("Tidak ada data untuk diexport");
-                return;
-            }
-
+            if (!filteredTableData || filteredTableData.length === 0) { showToast("Tidak ada data"); return; }
             const exportData = filteredTableData.map((item, index) => {
                 let row = {
-                    "No": index + 1,
-                    "NIK": item.nik || "-",
-                    "Nama": item.nama || "-",
+                    "No": index + 1, 
+                    "NIK": item.nik || "-", 
+                    "Nama": item.nama || "-", 
                     "Kategori": item.kategori?.toUpperCase() || "-",
-                    "Tempat Tanggal Lahir": item.detail?.ttl || "-",
-                    "Jenis Kelamin": item.detail?.jk || "-",
+                    "Tempat Tanggal Lahir": item.detail?.ttl || "-", 
+                    "Jenis Kelamin": item.detail?.jk || "-", 
                     "Alamat": item.detail?.alamat || "-",
-                    "Desa": item.desa || "-",
-                    "Kecamatan": item.kecamatan || "-",
-                    "Status": item.status?.toUpperCase().replace('_', ' ') || "-",
+                    "Desa": item.desa || "-", 
+                    "Kecamatan": item.kecamatan || "-", 
+                    "Status": item.status?.toUpperCase().replace('_', ' ') || "-", 
                     "Waktu Pengajuan": formatDateTime(item.createdAt)
                 };
-
                 if (item.status === 'menunggu_ttd') row["Waktu Verifikasi"] = formatDateTime(item.waktu_verifikasi);
                 if (item.status === 'selesai') row["Waktu Selesai"] = formatDateTime(item.waktu_selesai);
-                if (item.status === 'ditolak') {
-                    row["Waktu Penolakan"] = formatDateTime(item.waktu_penolakan);
-                    row["Alasan Ditolak"] = item.alasan || "-";
+                if (item.status === 'ditolak') { 
+                    row["Waktu Penolakan"] = formatDateTime(item.waktu_penolakan); 
+                    row["Alasan Ditolak"] = item.alasan || "-"; 
                 }
-
                 return row;
             });
-
-            // Gunakan SheetJS
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Jamkesda");
-
-            // Pembuatan Nama File
+            const worksheet = window.XLSX.utils.json_to_sheet(exportData);
+            const workbook = window.XLSX.utils.book_new();
+            window.XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
             let filename = `Data_Jamkesda_${tableTabFilter.toUpperCase()}`;
-            if(filterBulan) filename += `_Bulan-${filterBulan}`;
-            if(filterTahun) filename += `_Tahun-${filterTahun}`;
-            if(filterKec) filename += `_${filterKec}`;
-            if(filterDesa) filename += `_${filterDesa}`;
-            filename += ".xlsx";
-
-            XLSX.writeFile(workbook, filename);
+            window.XLSX.writeFile(workbook, filename + ".xlsx");
           };
 
           const cetakDraftRekomendasiPDF = (data) => {
@@ -559,107 +644,99 @@
             win.document.close();
           };
 
-          if (appState === 'loading') return <div className="min-h-screen flex items-center justify-center bg-gray-50"><RefreshCw size={32} className="animate-spin text-purple-600" /></div>;
-          if (appState === 'waiting-approval') {
-              return (
-              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-800 to-indigo-900 p-4">
-                  <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
-                  <div className="bg-purple-100 p-4 rounded-full mb-4 mx-auto w-fit"><Clock className="text-purple-600" size={36} /></div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Menunggu Persetujuan</h2>
-                  <p className="text-gray-600 mb-6 text-sm">Pengajuan sandi baru untuk <strong>Desa {loginDesa}</strong> sedang diproses Dinas Kesehatan.</p>
-                  <button onClick={() => { setAppState('login'); setPassword(''); }} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg shadow-sm">Kembali Login</button>
+          if (appState === 'loading') return (
+              <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                  <RefreshCw size={32} className="animate-spin text-purple-600" />
+              </div>
+          );
+          
+          if (appState === 'waiting-approval') return (
+              <div className="min-h-screen flex items-center justify-center bg-purple-900 p-4">
+                  <div className="bg-white p-8 rounded-2xl w-full max-w-md text-center">
+                      <h2 className="text-2xl font-bold mb-2">Menunggu Persetujuan</h2>
+                      <p className="text-gray-600 mb-6">Sandi <strong>Desa {loginDesa}</strong> sedang diproses.</p>
+                      <button onClick={() => { setAppState('login'); setPassword(''); }} className="w-full bg-purple-600 text-white py-2 rounded-lg">Kembali Login</button>
                   </div>
               </div>
-              );
-          }
-          if (appState === 'change-password') {
-              return (
-              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-800 to-indigo-900 p-4">
-                  <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-                  <div className="flex flex-col items-center mb-6 text-center">
-                      <div className="bg-yellow-100 p-3 rounded-full mb-3"><AlertCircle className="text-yellow-600" size={32} /></div>
-                      <h2 className="text-xl font-bold text-gray-800">Ubah Password Default</h2>
-                  </div>
-                  {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded flex items-center"><AlertCircle size={16} className="mr-2" /> {errorMsg}</div>}
-                  <form onSubmit={handleChangePassword} className="space-y-4">
-                      <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg border-gray-300" placeholder="Sandi Baru (Min. 6)" />
-                      <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg border-gray-300" placeholder="Konfirmasi Sandi Baru" />
-                      <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg">Ajukan Perubahan</button>
-                      <button type="button" onClick={() => setAppState('login')} className="w-full text-gray-500 hover:text-gray-700 py-2 text-sm">Batal</button>
-                  </form>
+          );
+          
+          if (appState === 'change-password') return (
+              <div className="min-h-screen flex items-center justify-center bg-purple-900 p-4">
+                  <div className="bg-white p-8 rounded-2xl w-full max-w-md">
+                      <h2 className="text-xl font-bold text-center mb-6">Ubah Password Default</h2>
+                      {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm">{errorMsg}</div>}
+                      <form onSubmit={handleChangePassword} className="space-y-4">
+                          <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Sandi Baru" />
+                          <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" placeholder="Konfirmasi Sandi" />
+                          <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg">Ajukan</button>
+                          <button type="button" onClick={() => setAppState('login')} className="w-full text-gray-500 py-2">Batal</button>
+                      </form>
                   </div>
               </div>
-              );
-          }
-          if (appState === 'login') {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}>
+          );
+          
+          if (appState === 'login') return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
                     <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-4 border-purple-800">
-                    <div className="flex flex-col items-center mb-6">
-                        <div className="bg-purple-100 p-3 rounded-full mb-3"><Shield className="text-purple-800" size={36} /></div>
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">SiPenjamin</h1>
-                        <p className="text-sm font-bold text-purple-700 text-center mt-1">Sistem Permohonan Jamkesda Terjamin</p>
-                        <p className="text-xs font-bold text-gray-400 text-center mt-2 tracking-widest uppercase">Kabupaten Kuningan</p>
-                    </div>
-                    <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
-                        <button onClick={() => { setLoginRole('desa'); setPassword(''); setErrorMsg(''); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${loginRole === 'desa' ? 'bg-white shadow text-purple-800' : 'text-gray-500'}`}>Operator Desa</button>
-                        <button onClick={() => { setLoginRole('dinas'); setPassword(''); setErrorMsg(''); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${loginRole === 'dinas' ? 'bg-white shadow text-purple-800' : 'text-gray-500'}`}>Admin Dinkes</button>
-                    </div>
-                    {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-lg flex items-center"><AlertCircle size={16} className="mr-2 min-w-[16px]" /> {errorMsg}</div>}
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        {loginRole === 'desa' ? (
-                        <>
-                            <select value={loginKecamatan} onChange={(e) => { setLoginKecamatan(e.target.value); setLoginDesa(''); }} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"><option value="">Pilih Kecamatan...</option>{Object.keys(wilayahKuningan).sort().map(kec => <option key={kec} value={kec}>{kec}</option>)}</select>
-                            <select value={loginDesa} onChange={(e) => setLoginDesa(e.target.value)} disabled={!loginKecamatan} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white disabled:bg-gray-100"><option value="">Pilih Desa...</option>{loginKecamatan && wilayahKuningan[loginKecamatan].sort().map(desa => <option key={desa} value={desa}>{desa}</option>)}</select>
-                        </>
-                        ) : (
-                        <input type="text" value={dinasUsername} onChange={(e) => setDinasUsername(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" placeholder="Username Admin (admin)" />
-                        )}
-                        <div className="relative">
-                            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg pr-10" placeholder="Password" />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-purple-700">
-                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                            </button>
+                        <div className="flex flex-col items-center mb-6">
+                            <Shield className="text-purple-800 mb-2" size={36} />
+                            <h1 className="text-3xl font-extrabold text-gray-900">SiPenjamin</h1>
+                            <p className="text-sm font-bold text-purple-700">Sistem Permohonan Jamkesda</p>
                         </div>
-                        <button type="submit" className="w-full bg-purple-800 hover:bg-purple-900 text-white font-bold py-3 rounded-lg flex items-center justify-center mt-2 transition shadow-lg"><LogIn size={20} className="mr-2" /> Masuk Aplikasi</button>
-                    </form>
+                        <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+                            <button onClick={() => { setLoginRole('desa'); setPassword(''); setErrorMsg(''); }} className={`flex-1 py-2 text-sm font-bold rounded-md ${loginRole === 'desa' ? 'bg-white shadow text-purple-800' : 'text-gray-500'}`}>Desa</button>
+                            <button onClick={() => { setLoginRole('dinas'); setPassword(''); setErrorMsg(''); }} className={`flex-1 py-2 text-sm font-bold rounded-md ${loginRole === 'dinas' ? 'bg-white shadow text-purple-800' : 'text-gray-500'}`}>Dinkes</button>
+                        </div>
+                        
+                        {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-lg">{errorMsg}</div>}
+                        
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            {loginRole === 'desa' ? (
+                            <>
+                                <select value={loginKecamatan} onChange={(e) => { setLoginKecamatan(e.target.value); setLoginDesa(''); }} className="w-full px-3 py-2.5 border rounded-lg">
+                                    <option value="">Pilih Kecamatan...</option>
+                                    {Object.keys(wilayahKuningan).sort().map(kec => <option key={kec} value={kec}>{kec}</option>)}
+                                </select>
+                                <select value={loginDesa} onChange={(e) => setLoginDesa(e.target.value)} disabled={!loginKecamatan} className="w-full px-3 py-2.5 border rounded-lg">
+                                    <option value="">Pilih Desa...</option>
+                                    {loginKecamatan && wilayahKuningan[loginKecamatan].sort().map(desa => <option key={desa} value={desa}>{desa}</option>)}
+                                </select>
+                            </>
+                            ) : (
+                                <input type="text" value={dinasUsername} onChange={(e) => setDinasUsername(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg" placeholder="Username Admin" />
+                            )}
+                            <div className="relative">
+                                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg pr-10" placeholder="Password" />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500">
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
+                            <button type="submit" className="w-full bg-purple-800 text-white font-bold py-3 rounded-lg flex items-center justify-center mt-2">
+                                <LogIn size={20} className="mr-2" /> Masuk
+                            </button>
+                        </form>
                     </div>
                 </div>
-            );
-          }
+          );
 
-          // FILTERING DATA (Disesuaikan dengan Tab Proses & Pilihan Filter Lanjutan)
           let dataToShow = permohonanList.filter(d => loginRole === 'dinas' || d.desa === loginDesa);
           let pendUmum = 0, pendSalin = 0, pendBayi = 0;
-          
-          dataToShow.forEach(d => {
-              if(d.status === 'pending') {
-                  if(d.kategori === 'umum') pendUmum++;
-                  else if(d.kategori === 'persalinan') pendSalin++;
-                  else if(d.kategori === 'bayi') pendBayi++;
-              }
+          dataToShow.forEach(d => { 
+              if(d.status === 'pending') { 
+                  if(d.kategori === 'umum') pendUmum++; 
+                  else if(d.kategori === 'persalinan') pendSalin++; 
+                  else if(d.kategori === 'bayi') pendBayi++; 
+              } 
           });
           
-          // Filter 1: Tab Proses (Pending, Menunggu TTD, Selesai, Ditolak)
           let filteredTableData = dataToShow.filter(d => d.status === tableTabFilter);
-
-          // Filter 2: Bulan
+          
           if (filterBulan) {
-              filteredTableData = filteredTableData.filter(d => {
-                  const m = new Date(d.createdAt).getMonth() + 1;
-                  return m.toString() === filterBulan;
-              });
+              filteredTableData = filteredTableData.filter(d => new Date(d.createdAt).getMonth() + 1 === parseInt(filterBulan));
           }
-
-          // Filter 3: Tahun
           if (filterTahun) {
-              filteredTableData = filteredTableData.filter(d => {
-                  const y = new Date(d.createdAt).getFullYear();
-                  return y.toString() === filterTahun;
-              });
+              filteredTableData = filteredTableData.filter(d => new Date(d.createdAt).getFullYear() === parseInt(filterTahun));
           }
-
-          // Filter 4: Wilayah (Hanya untuk Admin)
           if (loginRole === 'dinas') {
               if (filterKec) filteredTableData = filteredTableData.filter(d => d.kecamatan === filterKec);
               if (filterDesa) filteredTableData = filteredTableData.filter(d => d.desa === filterDesa);
@@ -668,204 +745,173 @@
           return (
             <div className="min-h-screen bg-[#f4f4f6] flex flex-col relative text-gray-800 font-sans">
                 <nav className="bg-[#4a148c] text-white shadow-md sticky top-0 z-40">
-                    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex justify-between h-16">
-                            <div className="flex items-center">
-                                <button onClick={() => setCurrentView('dashboard')} className="p-2 rounded-md hover:bg-[#6a1b9a]" title="Beranda"><Menu size={24} /></button>
-                                <span className="ml-3 font-extrabold text-xl hidden sm:block tracking-wide">SiPenjamin - Kab. Kuningan</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm font-bold bg-[#7b1fa2] px-3 py-1.5 rounded-full flex items-center shadow-inner">
-                                   {loginRole === 'dinas' ? <Shield size={16} className="mr-2"/> : <MapPin size={16} className="mr-2"/>}
-                                   {loginRole === 'dinas' ? 'Admin Dinkes' : `Desa ${loginDesa}`}
-                                </span>
-                                {loginRole === 'dinas' && <button onClick={() => setCurrentView('akun')} className="text-sm bg-white text-[#4a148c] font-bold hover:bg-gray-200 px-3 py-1.5 rounded-md shadow">Kelola Sandi Desa</button>}
-                                <button onClick={() => { setAppState('login'); setPassword(''); }} className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md font-bold flex items-center shadow"><LogIn size={16} className="mr-1 rotate-180"/> Keluar</button>
-                            </div>
+                    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16">
+                        <div className="flex items-center">
+                            <button onClick={() => setCurrentView('dashboard')} className="p-2 rounded hover:bg-[#6a1b9a]">
+                                <Menu size={24} />
+                            </button>
+                            <span className="ml-3 font-extrabold text-xl hidden sm:block tracking-wide">SiPenjamin</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm font-bold bg-[#7b1fa2] px-3 py-1.5 rounded-full shadow-inner">
+                                {loginRole === 'dinas' ? 'Admin Dinkes' : `Desa ${loginDesa}`}
+                            </span>
+                            {loginRole === 'dinas' && (
+                                <button onClick={() => setCurrentView('akun')} className="text-sm bg-white text-[#4a148c] font-bold px-3 py-1.5 rounded">
+                                    Kelola Sandi
+                                </button>
+                            )}
+                            <button onClick={() => { setAppState('login'); setPassword(''); }} className="text-sm bg-red-500 text-white px-3 py-1.5 rounded font-bold">
+                                Keluar
+                            </button>
                         </div>
                     </div>
                 </nav>
 
                 <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    {/* Dashboard Utama */}
+                    
+                    {/* View: DASHBOARD */}
                     {currentView === 'dashboard' && (
                         <div className="space-y-6 animate-zoom-in">
-                            {/* Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('umum'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-blue-500 shadow-md transition ${loginRole === 'desa' ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`}>
+                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('umum'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-blue-500 shadow-md ${loginRole === 'desa' ? 'cursor-pointer hover:shadow-lg' : ''}`}>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{loginRole === 'desa' ? '+ Form Umum' : 'Pending Umum'}</p>
-                                    <div className="mt-2 flex items-center justify-between"><p className="text-4xl font-black text-blue-600">{pendUmum}</p><FileText className="text-blue-200" size={40}/></div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <p className="text-4xl font-black text-blue-600">{pendUmum}</p>
+                                        <FileText className="text-blue-200" size={40}/>
+                                    </div>
                                 </div>
-                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('persalinan'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-pink-500 shadow-md transition ${loginRole === 'desa' ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`}>
+                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('persalinan'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-pink-500 shadow-md ${loginRole === 'desa' ? 'cursor-pointer hover:shadow-lg' : ''}`}>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{loginRole === 'desa' ? '+ Form Persalinan' : 'Pending Persalinan'}</p>
-                                    <div className="mt-2 flex items-center justify-between"><p className="text-4xl font-black text-pink-600">{pendSalin}</p><Users className="text-pink-200" size={40}/></div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <p className="text-4xl font-black text-pink-600">{pendSalin}</p>
+                                        <Users className="text-pink-200" size={40}/>
+                                    </div>
                                 </div>
-                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('bayi'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-green-500 shadow-md transition ${loginRole === 'desa' ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`}>
+                                <div onClick={() => { if(loginRole === 'desa') { setCurrentFormTab('bayi'); setCurrentView('form'); } }} className={`bg-white p-6 rounded-xl border-l-8 border-green-500 shadow-md ${loginRole === 'desa' ? 'cursor-pointer hover:shadow-lg' : ''}`}>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{loginRole === 'desa' ? '+ Form Bayi' : 'Pending Bayi'}</p>
-                                    <div className="mt-2 flex items-center justify-between"><p className="text-4xl font-black text-green-600">{pendBayi}</p><PlusCircle className="text-green-200" size={40}/></div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <p className="text-4xl font-black text-green-600">{pendBayi}</p>
+                                        <PlusCircle className="text-green-200" size={40}/>
+                                    </div>
                                 </div>
                             </div>
 
-                            {}
-                            {/* TABEL DATA & FILTER */}
                             <div className="mt-8 bg-white border border-gray-200 shadow-sm">
-                                {/* Navigation Tabs for Table (Mewakili Filter PROSES) */}
                                 <div className="flex border-b border-gray-200 bg-gray-100 overflow-x-auto">
-                                    <button onClick={() => setTableTabFilter('pending')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'pending' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Menunggu Verifikasi</button>
-                                    <button onClick={() => setTableTabFilter('menunggu_ttd')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'menunggu_ttd' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Menu Rekom (TTD)</button>
-                                    <button onClick={() => setTableTabFilter('selesai')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'selesai' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Selesai / Diterima</button>
-                                    <button onClick={() => setTableTabFilter('ditolak')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${tableTabFilter === 'ditolak' ? 'bg-[#5b3278] text-white' : 'text-gray-600 hover:bg-gray-200'}`}>Ditolak</button>
+                                    <button onClick={() => setTableTabFilter('pending')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${tableTabFilter === 'pending' ? 'bg-[#5b3278] text-white' : 'text-gray-600'}`}>Menunggu Verifikasi</button>
+                                    <button onClick={() => setTableTabFilter('menunggu_ttd')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${tableTabFilter === 'menunggu_ttd' ? 'bg-[#5b3278] text-white' : 'text-gray-600'}`}>Menu Rekom (TTD)</button>
+                                    <button onClick={() => setTableTabFilter('selesai')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${tableTabFilter === 'selesai' ? 'bg-[#5b3278] text-white' : 'text-gray-600'}`}>Selesai</button>
+                                    <button onClick={() => setTableTabFilter('ditolak')} className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${tableTabFilter === 'ditolak' ? 'bg-[#5b3278] text-white' : 'text-gray-600'}`}>Ditolak</button>
                                 </div>
                                 
-                                {/* Title and Filter Controls */}
                                 <div className="p-4 bg-[#f3e5f5] border-b border-[#e1bee7] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-                                    <h2 className="text-lg font-bold text-[#4a148c]">
-                                        {tableTabFilter === 'pending' && 'Daftar Permohonan Masuk'}
-                                        {tableTabFilter === 'menunggu_ttd' && 'Daftar Rekomendasi (Siap Tanda Tangan)'}
-                                        {tableTabFilter === 'selesai' && 'Daftar Surat Rekomendasi Selesai'}
-                                        {tableTabFilter === 'ditolak' && 'Daftar Permohonan yang Ditolak'}
-                                    </h2>
-                                    
-                                    <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                                        {/* Filter Bulan & Tahun */}
-                                        <select value={filterBulan} onChange={e=>setFilterBulan(e.target.value)} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium focus:outline-none">
-                                            <option value="">Semua Bulan</option>
-                                            <option value="1">Januari</option>
-                                            <option value="2">Februari</option>
-                                            <option value="3">Maret</option>
-                                            <option value="4">April</option>
+                                    <h2 className="text-lg font-bold text-[#4a148c]">Daftar Permohonan</h2>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <select value={filterBulan} onChange={e=>setFilterBulan(e.target.value)} className="border px-2 py-1.5 text-xs rounded bg-white">
+                                            <option value="">Bulan</option>
+                                            <option value="1">Jan</option>
+                                            <option value="2">Feb</option>
+                                            <option value="3">Mar</option>
+                                            <option value="4">Apr</option>
                                             <option value="5">Mei</option>
-                                            <option value="6">Juni</option>
-                                            <option value="7">Juli</option>
-                                            <option value="8">Agustus</option>
-                                            <option value="9">September</option>
-                                            <option value="10">Oktober</option>
-                                            <option value="11">November</option>
-                                            <option value="12">Desember</option>
+                                            <option value="6">Jun</option>
+                                            <option value="7">Jul</option>
+                                            <option value="8">Agu</option>
+                                            <option value="9">Sep</option>
+                                            <option value="10">Okt</option>
+                                            <option value="11">Nov</option>
+                                            <option value="12">Des</option>
                                         </select>
-                                        <select value={filterTahun} onChange={e=>setFilterTahun(e.target.value)} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium focus:outline-none">
-                                            <option value="">Semua Tahun</option>
+                                        <select value={filterTahun} onChange={e=>setFilterTahun(e.target.value)} className="border px-2 py-1.5 text-xs rounded bg-white">
+                                            <option value="">Tahun</option>
                                             <option value="2024">2024</option>
                                             <option value="2025">2025</option>
                                             <option value="2026">2026</option>
                                         </select>
-
-                                        {/* Filter Wilayah Khusus Admin */}
                                         {loginRole === 'dinas' && (
                                             <>
-                                                <select value={filterKec} onChange={e=>{setFilterKec(e.target.value); setFilterDesa('');}} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium max-w-[120px] focus:outline-none">
-                                                    <option value="">Semua Kec</option>
+                                                <select value={filterKec} onChange={e=>{setFilterKec(e.target.value); setFilterDesa('');}} className="border px-2 py-1.5 text-xs rounded bg-white">
+                                                    <option value="">Kecamatan</option>
                                                     {Object.keys(wilayahKuningan).sort().map(k => <option key={k} value={k}>{k}</option>)}
                                                 </select>
-                                                <select value={filterDesa} onChange={e=>setFilterDesa(e.target.value)} disabled={!filterKec} className="border border-[#7c5295] px-2 py-1.5 text-xs rounded bg-white font-medium max-w-[120px] disabled:bg-gray-200 focus:outline-none">
-                                                    <option value="">Semua Desa</option>
+                                                <select value={filterDesa} onChange={e=>setFilterDesa(e.target.value)} disabled={!filterKec} className="border px-2 py-1.5 text-xs rounded bg-white disabled:bg-gray-200">
+                                                    <option value="">Desa</option>
                                                     {filterKec && wilayahKuningan[filterKec].sort().map(d => <option key={d} value={d}>{d}</option>)}
                                                 </select>
                                             </>
                                         )}
-
-                                        {/* Tombol Export Excel */}
-                                        <button onClick={exportToExcel} className="bg-[#107c41] hover:bg-[#0c5e31] text-white px-4 py-1.5 text-xs font-bold rounded shadow flex items-center xl:ml-2 transition-colors">
-                                            <Sheet size={14} className="mr-1.5"/> EXPORT XLSX
+                                        <button onClick={exportToExcel} className="bg-[#107c41] text-white px-3 py-1.5 text-xs font-bold rounded shadow flex items-center">
+                                            <Sheet size={14} className="mr-1"/> EXPORT XLSX
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="overflow-x-auto p-4 bg-[#fafafa]">
+                                <div className="overflow-x-auto p-4">
                                     <table className="table-custom w-full">
                                         <thead>
                                             <tr>
                                                 <th className="w-12 text-center">No</th>
-                                                <th>NIK</th>
-                                                <th>Nama</th>
-                                                <th>Alamat</th>
-                                                <th>Desa</th>
-                                                <th>Kecamatan</th>
-                                                
-                                                {tableTabFilter === 'pending' && <th>Waktu Pengajuan</th>}
-                                                {tableTabFilter === 'menunggu_ttd' && <th>Waktu Verifikasi</th>}
-                                                {tableTabFilter === 'selesai' && <th>Waktu Selesai</th>}
-                                                
-                                                {tableTabFilter === 'ditolak' && (
-                                                    <>
-                                                        <th>Waktu Permohonan</th>
-                                                        <th>Waktu Penolakan</th>
-                                                        <th>Alasan</th>
-                                                    </>
-                                                )}
-                                                
-                                                {tableTabFilter !== 'ditolak' && <th>Penginput</th>}
-                                                <th className="text-center w-24">Aksi</th>
+                                                <th>NIK / Nama</th>
+                                                <th>Wilayah</th>
+                                                <th>Status Waktu</th>
+                                                <th className="text-center">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredTableData.length > 0 ? filteredTableData.map((item, index) => (
                                                 <tr key={item.id}>
                                                     <td className="text-center font-medium">{index + 1}.</td>
-                                                    <td className="font-mono text-gray-700">{item.nik || '-'}</td>
-                                                    <td className="font-bold text-[#4a148c] uppercase">{item.nama}</td>
-                                                    <td className="text-xs">{item.detail?.alamat || '-'}</td>
-                                                    <td>{item.desa}</td>
-                                                    <td>{item.kecamatan}</td>
-                                                    
-                                                    {tableTabFilter === 'pending' && <td className="text-xs">{formatDateTime(item.createdAt)}</td>}
-                                                    {tableTabFilter === 'menunggu_ttd' && <td className="text-xs">{formatDateTime(item.waktu_verifikasi)}</td>}
-                                                    {tableTabFilter === 'selesai' && <td className="text-xs text-green-700 font-semibold">{formatDateTime(item.waktu_selesai)}</td>}
-                                                    
-                                                    {tableTabFilter === 'ditolak' && (
-                                                        <>
-                                                            <td className="text-xs">{formatDateTime(item.createdAt)}</td>
-                                                            <td className="text-xs">{formatDateTime(item.waktu_penolakan)}</td>
-                                                            <td className="text-xs text-red-600">{item.alasan}</td>
-                                                        </>
-                                                    )}
-                                                    
-                                                    {tableTabFilter !== 'ditolak' && <td className="text-xs">{item.operatorId === 'dinas' ? 'dinas' : 'desa'}</td>}
-                                                    
+                                                    <td>
+                                                        <div className="font-bold text-[#4a148c] uppercase">{item.nama}</div>
+                                                        <div className="font-mono text-gray-500 text-xs">{item.nik || '-'}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div>{item.desa}</div>
+                                                        <div className="text-xs text-gray-500">{item.kecamatan}</div>
+                                                    </td>
+                                                    <td className="text-xs">
+                                                        {tableTabFilter === 'pending' && <div>Pengajuan: <br/><b>{formatDateTime(item.createdAt)}</b></div>}
+                                                        {tableTabFilter === 'menunggu_ttd' && <div>Verifikasi: <br/><b>{formatDateTime(item.waktu_verifikasi)}</b></div>}
+                                                        {tableTabFilter === 'selesai' && <div className="text-green-700">Selesai: <br/><b>{formatDateTime(item.waktu_selesai)}</b></div>}
+                                                        {tableTabFilter === 'ditolak' && <div className="text-red-600">Ditolak: <br/><b>{item.alasan}</b></div>}
+                                                    </td>
                                                     <td className="text-center align-middle">
                                                         <div className="flex flex-wrap justify-center gap-1.5">
-                                                            {/* Semua tab ada tombol lihat rincian */}
-                                                            <button onClick={() => setDetailModalData(item)} className="bg-[#4a148c] text-white p-1.5 rounded hover:bg-[#6a1b9a]" title="Lihat Detail Form"><FileText size={14}/></button>
-
-                                                            {/* TAB: PENDING */}
+                                                            <button onClick={() => setDetailModalData(item)} className="bg-[#4a148c] text-white p-1.5 rounded hover:bg-[#6a1b9a]" title="Detail">
+                                                                <FileText size={14}/>
+                                                            </button>
+                                                            
                                                             {tableTabFilter === 'pending' && loginRole === 'dinas' && (
                                                                 <>
-                                                                    <button onClick={() => setTerimaModalId(item.id)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700" title="Verifikasi Selesai (Lanjut ke Menu Rekom)"><Check size={14}/></button>
-                                                                    <button onClick={() => setTolakModalId(item.id)} className="bg-red-600 text-white p-1.5 rounded hover:bg-red-700" title="Tolak"><X size={14}/></button>
+                                                                    <button onClick={() => setTerimaModalId(item.id)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700"><Check size={14}/></button>
+                                                                    <button onClick={() => setTolakModalId(item.id)} className="bg-red-600 text-white p-1.5 rounded hover:bg-red-700"><X size={14}/></button>
                                                                 </>
                                                             )}
+                                                            
                                                             {tableTabFilter === 'pending' && loginRole === 'desa' && (
-                                                                <button onClick={() => setHapusTarget(item)} className="bg-red-600 text-white p-1.5 rounded hover:bg-red-700" title="Hapus Pengajuan"><Trash2 size={14}/></button>
+                                                                <button onClick={() => setHapusTarget(item)} className="bg-red-600 text-white p-1.5 rounded hover:bg-red-700"><Trash2 size={14}/></button>
                                                             )}
-
-                                                            {/* TAB: MENU REKOM (MENUNGGU TTD) */}
+                                                            
                                                             {tableTabFilter === 'menunggu_ttd' && loginRole === 'dinas' && (
                                                                 <>
-                                                                    <button onClick={() => cetakDraftRekomendasiPDF(item)} className="bg-gray-600 text-white p-1.5 rounded hover:bg-gray-700" title="Unduh/Print Draft Rekomendasi"><Printer size={14}/></button>
-                                                                    <button onClick={() => setUploadRekomId(item.id)} className="bg-blue-600 text-white p-1.5 rounded hover:bg-blue-700" title="Upload Rekomendasi TTD & Selesaikan"><UploadCloud size={14}/></button>
+                                                                    <button onClick={() => cetakDraftRekomendasiPDF(item)} className="bg-gray-600 text-white p-1.5 rounded hover:bg-gray-700"><Printer size={14}/></button>
+                                                                    <button onClick={() => setUploadRekomId(item.id)} className="bg-blue-600 text-white p-1.5 rounded hover:bg-blue-700"><UploadCloud size={14}/></button>
                                                                 </>
                                                             )}
-
-                                                            {/* TAB: SELESAI */}
-                                                            {tableTabFilter === 'selesai' && (
-                                                                <>
-                                                                    {item.file_rekomendasi?.url && (
-                                                                        <button onClick={() => forceDownload(item.file_rekomendasi.url, item.file_rekomendasi.name || `Rekomendasi_${item.nama}.pdf`)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700 flex items-center justify-center" title="Unduh File Rekomendasi">
-                                                                            <Download size={14}/>
-                                                                        </button>
-                                                                    )}
-                                                                </>
+                                                            
+                                                            {tableTabFilter === 'selesai' && item.file_rekomendasi?.url && (
+                                                                <button onClick={() => forceDownload(item.file_rekomendasi.url, item.file_rekomendasi.name)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700"><Download size={14}/></button>
                                                             )}
-
-                                                            {/* HAPUS GLOBAL UNTUK ADMIN */}
+                                                            
                                                             {loginRole === 'dinas' && (
-                                                                <button onClick={() => setHapusTarget(item)} className="bg-gray-200 text-red-600 p-1.5 rounded hover:bg-red-100" title="Hapus Data (Superadmin)"><Trash2 size={14}/></button>
+                                                                <button onClick={() => setHapusTarget(item)} className="bg-gray-200 text-red-600 p-1.5 rounded hover:bg-red-100"><Trash2 size={14}/></button>
                                                             )}
                                                         </div>
                                                     </td>
                                                 </tr>
                                             )) : (
-                                                <tr><td colSpan="10" className="text-center py-8 text-gray-500 italic">Tidak ada data untuk status ini.</td></tr>
+                                                <tr><td colSpan="5" className="text-center py-8 text-gray-500 italic">Tidak ada data.</td></tr>
                                             )}
                                         </tbody>
                                     </table>
@@ -874,126 +920,151 @@
                         </div>
                     )}
 
-                    {}
-                    {/* Form Input Permohonan (Desa) */}
+                    {/* View: FORM DESA */}
                     {currentView === 'form' && loginRole === 'desa' && (
                         <div className="space-y-6 animate-zoom-in">
                             <div className="flex justify-between items-center mb-6">
-                                <div><h1 className="text-2xl font-bold text-gray-900">Formulir Permohonan</h1><p className="text-sm text-gray-500">Isi data permohonan JAMKESDA berdasarkan kategori.</p></div>
-                                <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-bold hover:bg-gray-300 shadow">&larr; Batal & Kembali</button>
+                                <div><h1 className="text-2xl font-bold">Form Permohonan</h1></div>
+                                <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-gray-200 rounded-md text-sm font-bold shadow">&larr; Kembali</button>
                             </div>
-
-                            <div className="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-                                <div className="flex border-b border-gray-200 bg-gray-50">
-                                    <button onClick={() => setCurrentFormTab('umum')} className={`flex-1 py-4 px-4 text-center text-sm transition ${currentFormTab === 'umum' ? 'tab-btn active' : 'text-gray-500 hover:bg-gray-200 font-medium'}`}>UMUM</button>
-                                    <button onClick={() => setCurrentFormTab('persalinan')} className={`flex-1 py-4 px-4 text-center text-sm transition ${currentFormTab === 'persalinan' ? 'tab-btn active' : 'text-gray-500 hover:bg-gray-200 font-medium'}`}>PERSALINAN</button>
-                                    <button onClick={() => setCurrentFormTab('bayi')} className={`flex-1 py-4 px-4 text-center text-sm transition ${currentFormTab === 'bayi' ? 'tab-btn active' : 'text-gray-500 hover:bg-gray-200 font-medium'}`}>BAYI</button>
+                            <div className="bg-white rounded-lg shadow-xl border overflow-hidden">
+                                <div className="flex border-b bg-gray-50">
+                                    <button onClick={() => setCurrentFormTab('umum')} className={`flex-1 py-4 text-sm font-bold ${currentFormTab === 'umum' ? 'tab-btn active' : 'text-gray-500'}`}>UMUM</button>
+                                    <button onClick={() => setCurrentFormTab('persalinan')} className={`flex-1 py-4 text-sm font-bold ${currentFormTab === 'persalinan' ? 'tab-btn active' : 'text-gray-500'}`}>PERSALINAN</button>
+                                    <button onClick={() => setCurrentFormTab('bayi')} className={`flex-1 py-4 text-sm font-bold ${currentFormTab === 'bayi' ? 'tab-btn active' : 'text-gray-500'}`}>BAYI</button>
                                 </div>
-
-                                <div className="p-8 border-t-8 border-[#5e35b1] bg-white">
+                                <div className="p-8 border-t-8 border-[#5e35b1]">
                                     <form onSubmit={handleAddPermohonan}>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-5 mb-8">
-                                            {/* Field Umum/Bersama */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                                             <div className="space-y-4">
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK</label><input type="text" name="nik" required className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] focus:border-[#5e35b1] bg-gray-50" placeholder="NIK" /></div>
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama</label><input type="text" name="nama" required className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nama" /></div>
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Tempat, Tanggal Lahir</label><input type="text" name="ttl" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Tempat, Tanggal Lahir" /></div>
-                                                
-                                                {/* PERBAIKAN: Input Jenis Kelamin diubah jadi Dropdown Select */}
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Jenis Kelamin</label>
-                                                    <select name="jk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" required>
-                                                        <option value="">Pilih Jenis Kelamin...</option>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">NIK</label>
+                                                    <input type="text" name="nik" required className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Nama Lengkap</label>
+                                                    <input type="text" name="nama" required className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Tempat, Tanggal Lahir</label>
+                                                    <input type="text" name="ttl" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Jenis Kelamin</label>
+                                                    <select name="jk" className="w-full text-sm p-2.5 border rounded bg-gray-50">
+                                                        <option value="">Pilih...</option>
                                                         <option value="Laki-laki">Laki-laki</option>
                                                         <option value="Perempuan">Perempuan</option>
                                                     </select>
                                                 </div>
-                                                
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Alamat</label><input type="text" name="alamat" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Alamat" /></div>
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">No KK</label><input type="text" name="nokk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="No KK" /></div>
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama Kepala Keluarga</label><input type="text" name="namakk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nama Kepala Keluarga" /></div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Alamat Lengkap</label>
+                                                    <input type="text" name="alamat" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">No KK</label>
+                                                    <input type="text" name="nokk" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Nama KK</label>
+                                                    <input type="text" name="namakk" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
                                                 
                                                 {currentFormTab === 'umum' && (
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">Nik Kepala Keluarga</label><input type="text" name="nikkk" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="Nik Kepala Keluarga" /></div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold mb-1">NIK KK</label>
+                                                        <input type="text" name="nikkk" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                    </div>
                                                 )}
-
+                                                
                                                 {currentFormTab === 'bayi' && (
                                                     <>
-                                                        <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK Ayah</label><input type="text" name="nik_ayah" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="NIK Ayah" /></div>
-                                                        <div><label className="block text-xs font-bold text-gray-700 mb-1">NIK Ibu</label><input type="text" name="nik_ibu" className="w-full text-sm p-2.5 border border-gray-300 rounded focus:ring-[#5e35b1] bg-gray-50" placeholder="NIK Ibu" /></div>
+                                                        <div><label className="block text-xs font-bold mb-1">NIK Ayah</label><input type="text" name="nik_ayah" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
+                                                        <div><label className="block text-xs font-bold mb-1">NIK Ibu</label><input type="text" name="nik_ibu" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
                                                     </>
                                                 )}
-
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Desa</label><input type="text" name="desa_readonly" value={loginDesa} readOnly className="w-full text-sm p-2.5 border border-gray-200 rounded bg-gray-100 text-gray-500 font-medium" /></div>
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Kecamatan</label><input type="text" name="kecamatan_readonly" value={loginKecamatan} readOnly className="w-full text-sm p-2.5 border border-gray-200 rounded bg-gray-100 text-gray-500 font-medium" /></div>
+                                                
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Desa</label>
+                                                    <input type="text" value={loginDesa} readOnly className="w-full text-sm p-2.5 border rounded bg-gray-200" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">Kecamatan</label>
+                                                    <input type="text" value={loginKecamatan} readOnly className="w-full text-sm p-2.5 border rounded bg-gray-200" />
+                                                </div>
                                             </div>
-
-                                            {/* Field Kolom Kanan */}
+                                            
                                             <div className="space-y-4">
                                                 {currentFormTab !== 'bayi' && (
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Rujukan Puskesmas</label><input type="text" name="rujukan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Surat Rujukan Puskesmas" /></div>
-                                                )}
-                                                {currentFormTab === 'bayi' && (
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Rujukan Puskesmas (Poned)</label><input type="text" name="rujukan_poned" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Surat Rujukan Puskesmas (Poned)" /></div>
+                                                    <div><label className="block text-xs font-bold mb-1">Rujukan Puskesmas</label><input type="text" name="rujukan" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
                                                 )}
                                                 
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">No Register Rumah Sakit</label><input type="text" name="noreg" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Register Rumah Sakit" /></div>
+                                                {currentFormTab === 'bayi' && (
+                                                    <div><label className="block text-xs font-bold mb-1">Rujukan Poned</label><input type="text" name="rujukan_poned" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
+                                                )}
+                                                
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">No Register RS</label>
+                                                    <input type="text" name="noreg" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
                                                 
                                                 {currentFormTab !== 'umum' && (
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Dirawat (RS)</label><input type="text" name="sk_dirawat" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SK Dirawat" /></div>
+                                                    <div><label className="block text-xs font-bold mb-1">SK Dirawat</label><input type="text" name="sk_dirawat" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
                                                 )}
-
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Miskin (Desa)</label><input type="text" name="skm_desa" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SKM Desa" /></div>
+                                                
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">SKM Desa</label>
+                                                    <input type="text" name="skm_desa" className="w-full text-sm p-2.5 border rounded bg-gray-50" />
+                                                </div>
                                                 
                                                 {currentFormTab !== 'bayi' && (
                                                     <>
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Miskin (Dinsos)</label><input type="text" name="skm_dinsos" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SKM Dinsos" /></div>
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Keterangan Kerja (Desa)</label><input type="text" name="sk_kerja" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No SK Kerja" /></div>
+                                                        <div><label className="block text-xs font-bold mb-1">SKM Dinsos</label><input type="text" name="skm_dinsos" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
+                                                        <div><label className="block text-xs font-bold mb-1">SK Kerja Desa</label><input type="text" name="sk_kerja" className="w-full text-sm p-2.5 border rounded bg-gray-50" /></div>
                                                     </>
                                                 )}
-
-                                                {currentFormTab === 'umum' && (
-                                                    <div><label className="block text-xs font-bold text-gray-700 mb-1">No Surat Pernyataan Materai 10000</label><input type="text" name="pernyataan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50" placeholder="No Pernyataan" /></div>
-                                                )}
-
-                                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Nama Rumah Sakit Rujukan</label>
-                                                    <select name="rs_rujukan" className="w-full text-sm p-2.5 border border-gray-300 rounded bg-gray-50">
-                                                        <option value="">Pilih Rumah Sakit...</option>
+                                                
+                                                <div>
+                                                    <label className="block text-xs font-bold mb-1">RS Rujukan</label>
+                                                    <select name="rs_rujukan" className="w-full text-sm p-2.5 border rounded bg-gray-50">
+                                                        <option value="">Pilih...</option>
                                                         {daftarRS.map(rs => <option key={rs} value={rs}>{rs}</option>)}
                                                     </select>
                                                 </div>
-
-                                                {/* File Uploads */}
+                                                
                                                 <div className="pt-4 border-t mt-4 border-gray-200 space-y-3">
-                                                    <h3 className="font-bold text-sm text-[#4a148c] mb-2">Unggah Dokumen (PDF/Gambar)</h3>
+                                                    <h3 className="font-bold text-sm text-[#4a148c]">Unggah Dokumen (PDF/Gambar)</h3>
+                                                    
                                                     {currentFormTab === 'umum' && (
                                                         <>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Surat Keterangan Dirawat (RS)</label><input type="file" name="scan_dirawat" className="w-full text-sm text-gray-600 bg-white border border-gray-300 rounded p-1" /></div>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Picare</label><input type="file" name="scan_picare" className="w-full text-sm text-gray-600 bg-white border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Scan Pernyataan Materai</label><input type="file" name="scan_pernyataan" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Scan SK Dirawat</label><input type="file" name="scan_dirawat" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Scan Picare</label><input type="file" name="scan_picare" className="w-full text-xs border rounded p-1 bg-white" /></div>
                                                         </>
                                                     )}
+                                                    
                                                     {currentFormTab === 'persalinan' && (
                                                         <>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Picare Puskesmas</label><input type="file" name="scan_picare" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Buku KIA</label><input type="file" name="scan_kia" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan Partograf</label><input type="file" name="scan_partograf" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Scan MKJP</label><input type="file" name="scan_mkjp" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Picare Puskesmas</label><input type="file" name="scan_picare" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Buku KIA</label><input type="file" name="scan_kia" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Partograf</label><input type="file" name="scan_partograf" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">MKJP</label><input type="file" name="scan_mkjp" className="w-full text-xs border rounded p-1 bg-white" /></div>
                                                         </>
                                                     )}
+                                                    
                                                     {currentFormTab === 'bayi' && (
                                                         <>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">SKM Dinas Sosial</label><input type="file" name="scan_skm_dinsos" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Surat Keterangan Lahir (RS)</label><input type="file" name="scan_lahir" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
-                                                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Surat Keterangan Dirawat</label><input type="file" name="scan_dirawat" className="w-full text-sm text-gray-600 border border-gray-300 rounded p-1" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">SKM Dinsos</label><input type="file" name="scan_skm_dinsos" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Keterangan Lahir</label><input type="file" name="scan_lahir" className="w-full text-xs border rounded p-1 bg-white" /></div>
+                                                            <div><label className="block text-[10px] uppercase font-bold mb-1">Keterangan Dirawat</label><input type="file" name="scan_dirawat" className="w-full text-xs border rounded p-1 bg-white" /></div>
                                                         </>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <div className="flex justify-center border-t border-gray-200 pt-8 mt-4">
-                                            <button type="submit" disabled={isSubmitting} className="px-16 py-3.5 bg-[#4a148c] text-white rounded-md text-sm font-bold shadow-lg hover:bg-[#6a1b9a] transition flex items-center tracking-widest uppercase">
-                                                {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={18}/> : null}
-                                                Kirim Permohonan
+                                        <div className="flex justify-center border-t pt-6">
+                                            <button type="submit" disabled={isSubmitting} className="px-12 py-3 bg-[#4a148c] text-white rounded font-bold shadow hover:bg-[#6a1b9a] flex items-center">
+                                                {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={18}/> : null} Kirim Permohonan
                                             </button>
                                         </div>
                                     </form>
@@ -1002,156 +1073,218 @@
                         </div>
                     )}
 
-                    {/* Akun Management (Admin) */}
+                    {/* View: AKUN KHUSUS ADMIN */}
                     {currentView === 'akun' && loginRole === 'dinas' && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-zoom-in">
-                            <div className="p-4 bg-gray-50 border-b flex justify-between items-center"><h2 className="font-bold text-gray-800">Verifikasi & Manajemen Sandi Desa</h2><button onClick={()=>setCurrentView('dashboard')} className="text-sm bg-gray-200 px-3 py-1 rounded shadow">Kembali</button></div>
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-[#4a148c] text-white text-xs"><tr><th className="px-6 py-3 w-12">No</th><th className="px-6 py-3">Wilayah</th><th className="px-6 py-3 text-center">Status & Aksi</th></tr></thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {akunDesaList.map((akun, i) => (
-                                    <tr key={akun.id} className={akun.status==='pending' ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
-                                        <td className="px-6 py-4 font-medium">{i + 1}</td>
-                                        <td className="px-6 py-4"><div className="font-bold text-gray-800 uppercase">Desa {akun.desa}</div><div className="text-xs text-gray-500">Kec. {akun.kecamatan}</div>{akun.status === 'pending' && <div className="text-xs text-blue-700 mt-1 font-mono bg-blue-100 px-2 py-0.5 rounded inline-block">Req Password Baru: {akun.password}</div>}</td>
-                                        <td className="px-6 py-4 text-center">
-                                            {akun.status === 'pending' ? (
-                                                <div className="flex justify-center gap-2">
-                                                    <button onClick={() => setConfirmApproveId(akun.id)} className="bg-green-600 text-white px-3 py-1.5 rounded shadow hover:bg-green-700 font-bold text-xs">Setujui</button>
-                                                    <button onClick={() => setConfirmResetId(akun.id)} className="bg-red-600 text-white px-3 py-1.5 rounded shadow hover:bg-red-700 font-bold text-xs">Tolak (Reset)</button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex justify-center items-center gap-3">
-                                                    <span className="text-green-700 text-xs font-bold bg-green-100 px-3 py-1 rounded-full border border-green-200">✓ Aktif</span>
-                                                    <button onClick={() => setConfirmResetId(akun.id)} className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition" title="Hapus & Reset ke Default"><Trash2 size={16}/></button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                    ))}
-                                    {akunDesaList.length === 0 && <tr><td colSpan="3" className="text-center py-8 text-gray-400">Belum ada desa yang mengajukan password baru.</td></tr>}
-                                </tbody>
-                            </table>
+                        <div className="space-y-6 animate-zoom-in">
+                            
+                            {/* Card Ganti Password Admin */}
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h2 className="font-bold text-gray-800 mb-4 flex items-center">
+                                    <Shield className="mr-2 text-purple-700" size={20}/> Ubah Sandi Admin Dinkes
+                                </h2>
+                                <div className="flex items-end gap-4 max-w-md">
+                                    <div className="flex-1 relative">
+                                        <label className="block text-xs font-bold text-gray-700 mb-1">Sandi Admin Baru</label>
+                                        <input 
+                                            type={showAdminPassword ? "text" : "password"} 
+                                            value={adminNewPassword} 
+                                            onChange={(e) => setAdminNewPassword(e.target.value)} 
+                                            placeholder="Sandi baru..." 
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10 focus:ring-purple-500 focus:outline-none" 
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowAdminPassword(!showAdminPassword)} 
+                                            className="absolute inset-y-0 right-0 pr-3 pb-1 flex items-center text-gray-500 hover:text-purple-700 mt-5"
+                                        >
+                                            {showAdminPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
+                                    <button 
+                                        onClick={handleUpdateAdminPassword} 
+                                        disabled={isAdminUpdating || !adminNewPassword} 
+                                        className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-lg font-bold shadow disabled:bg-gray-400"
+                                    >
+                                        {isAdminUpdating ? 'Loading...' : 'Simpan'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-sm border p-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="font-bold text-gray-800">Manajemen Sandi Desa</h2>
+                                    <button onClick={()=>setCurrentView('dashboard')} className="text-sm bg-gray-200 px-3 py-1 rounded">Kembali</button>
+                                </div>
+                                
+                                <table className="w-full text-sm border">
+                                    <thead className="bg-[#4a148c] text-white">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left">Wilayah Desa</th>
+                                            <th className="px-4 py-3 text-center">Aksi / Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {akunDesaList.map(akun => (
+                                        <tr key={akun.id} className="border-t hover:bg-gray-50">
+                                            <td className="px-4 py-3">
+                                                <b>Desa {akun.desa}</b> - Kec. {akun.kecamatan}<br/>
+                                                {akun.status === 'pending' ? (
+                                                    <span className="text-xs text-blue-600 font-mono mt-1 block">Minta Sandi Baru: <b>{akun.password}</b></span>
+                                                ) : (
+                                                    <span className="text-xs text-green-700 font-mono mt-1 block">Sandi Aktif: <b>{akun.password}</b></span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {akun.status === 'pending' ? (
+                                                    <div className="flex gap-2 justify-center">
+                                                        <button onClick={() => eksekusiSetujuAkun(akun.id)} className="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700 shadow">Setuju</button>
+                                                        <button onClick={() => setConfirmResetId(akun.id)} className="bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-red-700 shadow">Tolak</button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <span className="text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded">Aktif</span>
+                                                        <button onClick={() => setConfirmResetId(akun.id)} className="text-red-500 hover:text-red-700 bg-gray-100 hover:bg-red-50 p-1.5 rounded transition shadow-sm" title="Hapus & Reset Sandi ke Default">
+                                                            <Trash2 size={16}/>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                        ))}
+                                        {akunDesaList.length === 0 && (
+                                            <tr><td colSpan="2" className="text-center py-6 text-gray-500">Belum ada data sandi desa yang didaftarkan.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
                 </main>
 
-                {}
-                {/* Modal Detail Penuh */}
+                {/* MODAL SECTION */}
                 {detailModalData && (
-                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
-                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-                            <div className="px-6 py-4 bg-[#5b3278] flex justify-between items-center text-white">
-                                <h3 className="text-lg font-bold">Detail Form ({detailModalData.kategori?.toUpperCase()})</h3>
-                                <button onClick={() => setDetailModalData(null)} className="text-white hover:text-red-300"><X size={24}/></button>
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                            <div className="px-4 py-3 bg-[#5b3278] flex justify-between items-center text-white">
+                                <h3 className="font-bold">Detail Form ({detailModalData.kategori?.toUpperCase()})</h3>
+                                <button onClick={() => setDetailModalData(null)}><X size={20}/></button>
                             </div>
-                            <div className="px-6 py-6 overflow-y-auto flex-1 bg-gray-50 text-sm grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="col-span-full mb-2 bg-white p-4 rounded shadow-sm border border-gray-100 flex justify-between">
-                                    <div><span className="text-gray-500 text-[10px] font-bold tracking-widest block uppercase">PEMOHON / NIK</span><span className="font-black text-xl text-[#4a148c]">{detailModalData.nama}</span><br/><span className="font-mono text-gray-600 bg-gray-100 px-1 py-0.5 rounded">{detailModalData.nik}</span></div>
-                                    <div className="text-right"><span className="text-gray-500 text-[10px] font-bold tracking-widest block uppercase">WILAYAH</span><span className="font-bold text-gray-800">Desa {detailModalData.desa}</span><br/><span className="text-gray-600">Kec. {detailModalData.kecamatan}</span></div>
+                            <div className="p-4 overflow-y-auto grid grid-cols-2 gap-3 text-sm">
+                                <div className="col-span-2 mb-2 p-3 bg-gray-100 rounded">
+                                    <b>{detailModalData.nama}</b> ({detailModalData.nik})<br/>
+                                    Desa {detailModalData.desa} - Kec. {detailModalData.kecamatan}
                                 </div>
-                                {/* Loop semua field, tampilkan '-' jika kosong */}
-                                {allFormFields.map((fieldKey) => {
-                                    // Skip field khusus file untuk dirender terpisah nanti
-                                    if(fieldKey.startsWith('scan_')) return null;
-                                    const val = detailModalData.detail ? detailModalData.detail[fieldKey] : null;
-                                    return (
-                                        <div key={fieldKey} className="bg-white p-3 rounded border border-gray-100 shadow-sm">
-                                            <span className="text-[#5b3278] text-[10px] uppercase font-bold block mb-1">{fieldKey.replace(/_/g, ' ')}</span>
-                                            <span className="font-medium text-gray-800">{val ? val : <em className="text-gray-400 font-light">- Tidak Diisi -</em>}</span>
-                                        </div>
-                                    );
-                                })}
-                                {/* Loop khusus File Dokumen */}
-                                <div className="col-span-full mt-4 border-t pt-4"><h4 className="font-bold text-[#4a148c] mb-3">Lampiran Dokumen</h4></div>
-                                {allFormFields.map((fieldKey) => {
-                                    if(!fieldKey.startsWith('scan_')) return null;
-                                    const v = detailModalData.detail ? detailModalData.detail[fieldKey] : null;
-                                    const isFile = v && typeof v === 'object' && v.url;
-                                    return (
-                                        <div key={fieldKey} className="bg-white p-3 rounded border border-gray-100 shadow-sm flex flex-col justify-center">
-                                            <span className="text-[#5b3278] text-[10px] uppercase font-bold block mb-1">{fieldKey.replace(/_/g, ' ')}</span>
-                                            {isFile ? (
-                                                <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 font-bold flex items-center bg-blue-50 px-2 py-1.5 rounded w-fit text-xs border border-blue-100">
-                                                    <FileText size={14} className="mr-1"/> Buka Dokumen ({v.name})
-                                                </a>
-                                            ) : (
-                                                <span className="text-gray-400 text-xs italic">- Tidak ada lampiran -</span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                
+                                {allFormFields.map((field) => !field.startsWith('scan_') && (
+                                    <div key={field} className="border p-2 rounded">
+                                        <span className="text-[10px] font-bold uppercase text-gray-500 block">{field.replace(/_/g, ' ')}</span>
+                                        {detailModalData.detail?.[field] || '-'}
+                                    </div>
+                                ))}
+                                
+                                <div className="col-span-2 font-bold text-[#4a148c] mt-2 border-t pt-2">Lampiran File</div>
+                                
+                                {allFormFields.map((field) => field.startsWith('scan_') && (
+                                    <div key={field} className="border p-2 rounded">
+                                        <span className="text-[10px] font-bold uppercase text-gray-500 block mb-1">{field.replace(/_/g, ' ')}</span>
+                                        {detailModalData.detail?.[field]?.url ? (
+                                            <a href={detailModalData.detail[field].url} target="_blank" className="text-blue-600 text-xs font-bold hover:underline">Buka Berkas</a> 
+                                        ) : (
+                                            <i className="text-gray-400 text-xs">Kosong</i>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Modal Menu Rekom: Upload Rekomendasi (Admin) */}
                 {uploadRekomId && (
-                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4 animate-zoom-in">
-                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-                            <div className="px-6 py-4 bg-[#5b3278] text-white flex items-center"><FileSignature className="mr-2" size={20}/><h3 className="text-lg font-bold">Unggah Rekomendasi (TTD)</h3></div>
-                            <div className="p-6 bg-gray-50">
-                                <p className="text-sm text-gray-700 mb-4 font-medium">Unggah berkas Rekomendasi (PDF/Gambar) yang sudah dicetak dan ditandatangani oleh pejabat berwenang.</p>
-                                <div className="border-2 border-dashed border-[#5b3278] rounded-lg p-6 bg-white text-center">
-                                    <input type="file" onChange={(e) => setFileRekomendasi(e.target.files[0])} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer" accept="application/pdf,image/*" />
-                                </div>
-                            </div>
-                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3">
-                                <button onClick={()=>{setUploadRekomId(null); setFileRekomendasi(null);}} className="px-5 py-2.5 rounded shadow text-sm font-bold text-gray-700 bg-white border hover:bg-gray-50">Batal</button>
-                                <button onClick={eksekusiUploadRekomendasi} disabled={isSubmitting} className="px-5 py-2.5 rounded shadow text-sm font-bold text-white bg-[#4a148c] hover:bg-[#6a1b9a] flex items-center">
-                                    {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={16}/> : <CheckCircle2 className="mr-2" size={16}/>}
-                                    Simpan & Kirim ke Desa
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+                            <h3 className="font-bold mb-4">Unggah TTD Rekomendasi</h3>
+                            <input type="file" onChange={(e) => setFileRekomendasi(e.target.files[0])} className="w-full mb-4 text-sm" />
+                            <div className="flex justify-end gap-2">
+                                <button onClick={()=>{setUploadRekomId(null); setFileRekomendasi(null);}} className="px-4 py-2 border rounded text-sm">Batal</button>
+                                <button onClick={eksekusiUploadRekomendasi} disabled={isSubmitting} className="px-4 py-2 bg-[#4a148c] text-white rounded text-sm">
+                                    {isSubmitting ? 'Loading...' : 'Simpan'}
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Modal Persetujuan Masuk (ke Menu Rekom) */}
                 {terimaModalId && (
-                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
-                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                            <div className="px-6 py-4 border-b bg-green-50"><h3 className="text-lg font-black text-green-800">Verifikasi Disetujui</h3></div>
-                            <div className="p-6"><p className="text-sm text-gray-700 font-medium">Pengajuan ini akan disetujui secara sistem dan dipindahkan ke <strong>Menu Rekomendasi</strong> untuk menunggu proses pencetakan & tanda tangan basah.</p></div>
-                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3"><button onClick={()=>setTerimaModalId(null)} className="px-5 py-2 bg-white border rounded shadow-sm text-sm font-bold text-gray-700 hover:bg-gray-50">Batal</button><button onClick={eksekusiTerima} className="px-5 py-2 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 flex items-center">Lanjutkan <Check className="ml-1" size={16}/></button></div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Modal Tolak */}
-                {tolakModalId && (
-                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
-                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                            <div className="px-6 py-4 border-b bg-red-800 text-white"><h3 className="text-lg font-bold">Tolak Permohonan</h3></div>
-                            <div className="p-6 bg-gray-50"><label className="block text-sm font-bold text-gray-700 mb-2">Alasan Penolakan</label><textarea value={tolakAlasan} onChange={e=>setTolakAlasan(e.target.value)} rows="4" className="w-full border-gray-300 rounded-md shadow-sm border p-3 text-sm focus:ring-red-500" placeholder="Tuliskan alasan lengkap..."></textarea></div>
-                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3"><button onClick={()=>setTolakModalId(null)} className="px-5 py-2 border rounded shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50">Batal</button><button onClick={eksekusiTolak} className="px-5 py-2 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-red-600 hover:bg-red-700">Tolak Permohonan</button></div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Modal Hapus */}
-                {hapusTarget && (
-                    <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4 animate-zoom-in">
-                        <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
-                            <div className="px-6 py-4 border-b bg-red-50"><h3 className="text-lg font-bold text-red-800">Hapus Permanen?</h3></div>
-                            <div className="p-6 text-center">
-                                <Trash2 size={40} className="mx-auto text-red-400 mb-3"/>
-                                <p className="text-sm text-gray-700 mb-2">Hapus pengajuan atas nama<br/><strong>{hapusTarget.nama}</strong>?</p>
-                                <p className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded">Tindakan ini tidak dapat dibatalkan!</p>
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+                            <h3 className="font-bold text-green-700 mb-2">Setujui Permohonan?</h3>
+                            <p className="text-sm mb-4">Akan dipindah ke Menu Rekomendasi.</p>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={()=>setTerimaModalId(null)} className="px-4 py-2 border rounded text-sm">Batal</button>
+                                <button onClick={eksekusiTerima} className="px-4 py-2 bg-green-600 text-white rounded text-sm">Lanjutkan</button>
                             </div>
-                            <div className="px-6 py-4 bg-gray-100 border-t flex justify-end gap-3"><button onClick={()=>setHapusTarget(null)} className="px-4 py-2 border rounded shadow-sm text-sm font-bold text-gray-700 bg-white">Batal</button><button onClick={eksekusiHapus} className="px-4 py-2 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-red-600 hover:bg-red-700">Ya, Hapus!</button></div>
                         </div>
                     </div>
                 )}
 
-                <div className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-[#311b51] text-white px-8 py-3 rounded-full shadow-2xl transition-all duration-300 z-50 flex items-center font-bold tracking-wide ${toastMsg ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>{toastMsg}</div>
+                {tolakModalId && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+                            <h3 className="font-bold text-red-700 mb-2">Tolak Permohonan</h3>
+                            <textarea value={tolakAlasan} onChange={e=>setTolakAlasan(e.target.value)} rows="3" className="w-full border rounded p-2 text-sm mb-4" placeholder="Alasan..."></textarea>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={()=>setTolakModalId(null)} className="px-4 py-2 border rounded text-sm">Batal</button>
+                                <button onClick={eksekusiTolak} className="px-4 py-2 bg-red-600 text-white rounded text-sm">Tolak</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {hapusTarget && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center">
+                            <Trash2 size={40} className="mx-auto text-red-500 mb-2"/>
+                            <h3 className="font-bold text-red-700 mb-4">Hapus Data Permanen?</h3>
+                            <div className="flex justify-center gap-2">
+                                <button onClick={()=>setHapusTarget(null)} className="px-4 py-2 border rounded text-sm">Batal</button>
+                                <button onClick={eksekusiHapus} className="px-4 py-2 bg-red-600 text-white rounded text-sm">Hapus</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {confirmResetId && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center">
+                            <AlertCircle size={40} className="mx-auto text-yellow-500 mb-2"/>
+                            <h3 className="font-bold text-gray-800 mb-2">Reset Sandi ke Default?</h3>
+                            <p className="text-sm text-gray-600 mb-4">Sandi desa ini akan dihapus dan dikembalikan ke <b>"Jamkesda2026"</b>.</p>
+                            <div className="flex justify-center gap-2">
+                                <button onClick={()=>setConfirmResetId(null)} className="px-4 py-2 border rounded text-sm hover:bg-gray-50">Batal</button>
+                                <button onClick={eksekusiResetAkun} className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 shadow">Ya, Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                <div className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-[#311b51] text-white px-6 py-2 rounded-full text-sm shadow-xl transition-all z-50 ${toastMsg ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                    {toastMsg}
+                </div>
             </div>
           );
         }
 
         const rootElement = document.getElementById('root');
-        const root = createRoot(rootElement);
-        root.render(<App />);
+        
+        try {
+            const root = createRoot(rootElement);
+            root.render(<App />);
+            
+            const loadingText = document.querySelector('#root > div[style]');
+            if(loadingText) loadingText.remove();
+        } catch (e) {
+            document.getElementById('error-log').innerHTML += '<div style="padding: 10px; border-bottom: 1px solid #fca5a5;">🔥 <b>React Render Error:</b> ' + e.message + '</div>';
+        }
     </script>
 </body>
 </html>
